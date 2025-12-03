@@ -10,6 +10,7 @@ import 'providers/auth_provider.dart';
 import 'providers/vehicle_provider.dart';
 import 'providers/reservation_provider.dart';
 import 'providers/review_provider.dart';
+import 'providers/admin_reservation_provider.dart';
 
 // Screens
 import 'screens/auth/login_screen.dart';
@@ -20,7 +21,6 @@ import 'utils/constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   // Inicializar Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -44,6 +44,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => VehicleProvider()),
         ChangeNotifierProvider(create: (_) => ReservationProvider()),
         ChangeNotifierProvider(create: (_) => ReviewProvider()),
+        ChangeNotifierProvider(create: (_) => AdminReservationProvider()),
       ],
       child: MaterialApp(
         title: AppStrings.appName,

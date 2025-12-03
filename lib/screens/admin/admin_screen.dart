@@ -7,6 +7,7 @@ import '../../widgets/custom_buttom.dart';
 import '../../widgets/vehicle_card.dart';
 import 'add_vehicle_screen.dart';
 import 'edit_vehicle_screen.dart';
+import 'admin_reservations_screen.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -47,10 +48,25 @@ class _AdminScreenState extends State<AdminScreen> {
       appBar: AppBar(
         title: const Text('Panel de Administración'),
         automaticallyImplyLeading: false,
+        actions: [
+          // Botón para ver reservaciones
+          IconButton(
+            icon: const Icon(Icons.calendar_today),
+            tooltip: 'Ver Reservaciones',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AdminReservationsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
-          // Header con botón de agregar
+          // Header con botones de acciones rápidas
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
             color: AppColors.primary.withOpacity(0.1),
@@ -65,6 +81,8 @@ class _AdminScreenState extends State<AdminScreen> {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
+
+                // Botón de agregar vehículo
                 CustomButton(
                   text: 'Agregar Nuevo Vehículo',
                   onPressed: () {
@@ -77,6 +95,25 @@ class _AdminScreenState extends State<AdminScreen> {
                   },
                   icon: Icons.add,
                   backgroundColor: AppColors.success,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+
+                // Botón de ver reservaciones (alternativa al icono en AppBar)
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AdminReservationsScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.calendar_today),
+                  label: const Text('Ver Todas las Reservaciones'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                    side: const BorderSide(color: AppColors.primary, width: 2),
+                  ),
                 ),
               ],
             ),
