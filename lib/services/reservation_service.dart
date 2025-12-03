@@ -1,4 +1,3 @@
-//lib/services/reservation_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/reservation_model.dart';
 import '../models/vehicle_model.dart';
@@ -230,6 +229,35 @@ class ReservationService {
           .toList();
     } catch (e) {
       throw 'Error al obtener reservas del vehículo: $e';
+    }
+  }
+
+  // Stream de reservas de un vehículo (para uso admin)
+  Stream<List<ReservationModel>> getReservationsByVehicleStream(
+      String vehicleId) {
+    return _firestore
+        .collection(FirebaseCollections.reservations)
+        .where('vehicleId', isEqualTo: vehicleId)
+        .orderBy('fechaReserva', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ReservationModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  // Obtener el nombre de un usuario por su ID
+  Future<String?> getUserName(String userId) async {
+    try {
+      final doc = await _firestore
+          .collection(FirebaseCollections.users)
+          .doc(userId)
+          .get();
+      if (!doc.exists) return null;
+      final data = doc.data();
+      if (data == null) return null;
+      return data['nombre'] as String?;
+    } catch (e) {
+      return null;
     }
   }
 

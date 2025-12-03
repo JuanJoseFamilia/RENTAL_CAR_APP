@@ -9,6 +9,7 @@ import '../../widgets/loanding_widget.dart';
 import '../vehicle/vehicle_detail_screen.dart';
 import '../reservation/my_reservations_screen.dart';
 import '../profile/profile_screen.dart';
+import '../admin/admin_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -48,11 +49,55 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> screens = [
-      _buildVehiclesScreen(),
-      const MyReservationsScreen(),
-      const ProfileScreen(),
-    ];
+    final authProvider = context.watch<AuthProvider>();
+    final isAdmin = authProvider.currentUser?.rol == 'admin';
+
+    final List<Widget> screens = isAdmin
+        ? [
+            _buildVehiclesScreen(),
+            const MyReservationsScreen(),
+            const AdminScreen(),
+            const ProfileScreen(),
+          ]
+        : [
+            _buildVehiclesScreen(),
+            const MyReservationsScreen(),
+            const ProfileScreen(),
+          ];
+
+    final List<BottomNavigationBarItem> navItems = isAdmin
+        ? const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Inicio',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today),
+              label: 'Reservas',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.admin_panel_settings),
+              label: 'Admin',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: 'Perfil',
+            ),
+          ]
+        : const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home),
+              label: 'Inicio',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today),
+              label: 'Reservas',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: 'Perfil',
+            ),
+          ];
 
     return Scaffold(
       appBar: _selectedIndex == 0
@@ -72,20 +117,8 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: _onNavItemTapped,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondary,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Inicio',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'Reservas',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Perfil',
-          ),
-        ],
+        type: BottomNavigationBarType.fixed,
+        items: navItems,
       ),
     );
   }

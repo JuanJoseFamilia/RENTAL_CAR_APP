@@ -7,6 +7,7 @@ class VehicleProvider with ChangeNotifier {
   final VehicleService _vehicleService = VehicleService();
 
   List<VehicleModel> _vehicles = [];
+  List<VehicleModel> _allVehicles = [];
   List<VehicleModel> _filteredVehicles = [];
   VehicleModel? _selectedVehicle;
   bool _isLoading = false;
@@ -21,6 +22,8 @@ class VehicleProvider with ChangeNotifier {
       _filteredVehicles.isEmpty && _searchQuery.isEmpty && _selectedType == null
           ? _vehicles
           : _filteredVehicles;
+  // Todos los vehículos (incluye no disponibles) - útil para Admin
+  List<VehicleModel> get allVehicles => _allVehicles;
   VehicleModel? get selectedVehicle => _selectedVehicle;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -45,6 +48,28 @@ class VehicleProvider with ChangeNotifier {
         _isLoading = false;
         _errorMessage = 'Error al cargar vehículos: $error';
         print('Error en loadVehicles: $error'); // Para debug
+        notifyListeners();
+      },
+    );
+  }
+
+  // Cargar todos los vehículos (incluye no disponibles) - para uso admin
+  void loadAllVehicles() {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    _vehicleService.getAllVehicles().listen(
+      (vehiclesList) {
+        _allVehicles = vehiclesList;
+        _isLoading = false;
+        _errorMessage = null;
+        notifyListeners();
+      },
+      onError: (error) {
+        _isLoading = false;
+        _errorMessage = 'Error al cargar todos los vehículos: $error';
+        print('Error en loadAllVehicles: $error');
         notifyListeners();
       },
     );
@@ -207,5 +232,44 @@ class VehicleProvider with ChangeNotifier {
   // Recargar vehículos
   void reloadVehicles() {
     loadVehicles();
+  }
+
+  // Cambiar disponibilidad de un vehículo
+  Future<void> toggleVehicleAvailability(
+      String vehicleId, bool currentStatus) async {
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      await _vehicleService.toggleVehicleAvailability(
+          vehicleId, !currentStatus);
+
+      // Actualizar lista localmente
+      final idx = _vehicles.indexWhere((v) => v.id == vehicleId);
+      if (idx != -1) {
+        _vehicles[idx] = _vehicles[idx].copyWith(disponible: !currentStatus);
+      }
+
+      final fIdx = _filteredVehicles.indexWhere((v) => v.id == vehicleId);
+      if (fIdx != -1) {
+        _filteredVehicles[fIdx] =
+            _filteredVehicles[fIdx].copyWith(disponible: !currentStatus);
+      }
+      // Actualizar lista completa (admin)
+      final aIdx = _allVehicles.indexWhere((v) => v.id == vehicleId);
+      if (aIdx != -1) {
+        _allVehicles[aIdx] =
+            _allVehicles[aIdx].copyWith(disponible: !currentStatus);
+      }
+
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Error al cambiar disponibilidad: $e';
+      notifyListeners();
+      rethrow;
+    }
   }
 }

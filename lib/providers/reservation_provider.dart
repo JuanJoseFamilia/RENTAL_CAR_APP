@@ -1,4 +1,6 @@
 // lib/providers/reservation_provider.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../models/reservation_model.dart';
 import '../services/reservation_service.dart';
@@ -6,12 +8,14 @@ import '../utils/date_utils.dart';
 
 class ReservationProvider with ChangeNotifier {
   final ReservationService _reservationService = ReservationService();
+  StreamSubscription<List<ReservationModel>>? _vehicleReservationsSub;
 
   List<ReservationModel> _allReservations = [];
   List<ReservationModel> _activeReservations = [];
   List<ReservationModel> _completedReservations = [];
   List<ReservationModel> _cancelledReservations = [];
   ReservationModel? _selectedReservation;
+  List<ReservationModel> _vehicleReservations = [];
 
   DateTime? _selectedStartDate;
   DateTime? _selectedEndDate;
@@ -25,6 +29,7 @@ class ReservationProvider with ChangeNotifier {
   List<ReservationModel> get completedReservations => _completedReservations;
   List<ReservationModel> get cancelledReservations => _cancelledReservations;
   ReservationModel? get selectedReservation => _selectedReservation;
+  List<ReservationModel> get vehicleReservations => _vehicleReservations;
   DateTime? get selectedStartDate => _selectedStartDate;
   DateTime? get selectedEndDate => _selectedEndDate;
   bool get isLoading => _isLoading;
@@ -54,6 +59,81 @@ class ReservationProvider with ChangeNotifier {
         notifyListeners();
       },
     );
+  }
+
+  // Cargar reservas de un vehículo (para admin)
+  void loadReservationsForVehicle(String vehicleId) {
+    // Cancelar suscripción previa si existe
+    _vehicleReservationsSub?.cancel();
+
+    _vehicleReservationsSub =
+        _reservationService.getReservationsByVehicleStream(vehicleId).listen(
+      (reservations) async {
+        try {
+          // Filtrar por seguridad (el query ya filtra por vehicleId)
+          final filtered =
+              reservations.where((r) => r.vehicleId == vehicleId).toList();
+
+          if (filtered.isEmpty) {
+            _vehicleReservations = [];
+            notifyListeners();
+            return;
+          }
+
+          // Enriquecer con nombre de usuario
+          final futures = filtered.map((r) async {
+            final name = await _reservationService.getUserName(r.userId);
+            return r.copyWith(userName: name);
+          }).toList();
+
+          _vehicleReservations = await Future.wait(futures);
+
+          notifyListeners();
+        } catch (e) {
+          _errorMessage = e.toString();
+          notifyListeners();
+        }
+      },
+      onError: (error) {
+        _errorMessage = error.toString();
+        notifyListeners();
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _vehicleReservationsSub?.cancel();
+    super.dispose();
+  }
+
+  // Actualizar estado de una reserva (ej: completar)
+  Future<bool> updateReservationStatus(
+      String reservationId, String newStatus) async {
+    try {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      await _reservationService.updateReservationStatus(
+          reservationId, newStatus);
+
+      // Actualizar lista local si existe
+      final idx = _vehicleReservations.indexWhere((r) => r.id == reservationId);
+      if (idx != -1) {
+        _vehicleReservations[idx] =
+            _vehicleReservations[idx].copyWith(estado: newStatus);
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
   }
 
   // Categorizar reservas por estado
