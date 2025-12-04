@@ -20,7 +20,7 @@ class AuthProvider with ChangeNotifier {
   // Stream del estado de autenticación
   Stream<User?> get authStateChanges => _authService.authStateChanges;
 
-  // Constructor - cargar usuario actual si existe
+  // cargar usuario actual si existe
   AuthProvider() {
     _loadCurrentUser();
   }

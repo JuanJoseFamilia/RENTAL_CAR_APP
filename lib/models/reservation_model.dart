@@ -34,7 +34,7 @@ class ReservationModel {
     this.userName,
   });
 
-  // Convertir de Map a ReservationModel (desde Firestore)
+  // Convertir de Map a ReservationModel
   factory ReservationModel.fromMap(Map<String, dynamic> map, String id) {
     return ReservationModel(
       id: id,
@@ -49,7 +49,7 @@ class ReservationModel {
     );
   }
 
-  // Convertir de ReservationModel a Map (para guardar en Firestore)
+  // Convertir de ReservationModel a Map
   Map<String, dynamic> toMap() {
     return {
       'userId': userId,

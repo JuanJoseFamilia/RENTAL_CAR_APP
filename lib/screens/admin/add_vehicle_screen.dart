@@ -50,7 +50,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       final vehicleService = VehicleService();
 
       final newVehicle = VehicleModel(
-        id: '', // Se genera automáticamente en Firestore
+        id: '',
         marca: _marcaController.text.trim(),
         modelo: _modeloController.text.trim(),
         anio: int.parse(_anioController.text.trim()),
@@ -187,6 +187,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
               ),
               const SizedBox(height: AppSpacing.xs),
               DropdownButtonFormField<String>(
+                // ignore: deprecated_member_use
                 value: _transmisionSeleccionada,
                 decoration: InputDecoration(
                   prefixIcon:

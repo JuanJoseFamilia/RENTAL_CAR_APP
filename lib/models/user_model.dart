@@ -18,7 +18,7 @@ class UserModel {
     this.rol = 'cliente',
   });
 
-  // Convertir de Map a UserModel (desde Firestore)
+  // Convertir de Map a UserModel
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
     return UserModel(
       id: id,
@@ -30,7 +30,7 @@ class UserModel {
     );
   }
 
-  // Convertir de UserModel a Map (para guardar en Firestore)
+  // Convertir de UserModel a Map
   Map<String, dynamic> toMap() {
     return {
       'email': email,

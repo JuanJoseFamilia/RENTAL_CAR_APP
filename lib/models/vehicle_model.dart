@@ -34,7 +34,7 @@ class VehicleModel {
     required this.fechaCreacion,
   });
 
-  // Convertir de Map a VehicleModel (desde Firestore)
+  // Convertir de Map a VehicleModel
   factory VehicleModel.fromMap(Map<String, dynamic> map, String id) {
     return VehicleModel(
       id: id,
@@ -54,7 +54,7 @@ class VehicleModel {
     );
   }
 
-  // Convertir de VehicleModel a Map (para guardar en Firestore)
+  // Convertir de VehicleModel a Map
   Map<String, dynamic> toMap() {
     return {
       'marca': marca,

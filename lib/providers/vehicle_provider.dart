@@ -22,7 +22,7 @@ class VehicleProvider with ChangeNotifier {
       _filteredVehicles.isEmpty && _searchQuery.isEmpty && _selectedType == null
           ? _vehicles
           : _filteredVehicles;
-  // Todos los vehículos (incluye no disponibles) - útil para Admin
+  // Todos los vehículos
   List<VehicleModel> get allVehicles => _allVehicles;
   VehicleModel? get selectedVehicle => _selectedVehicle;
   bool get isLoading => _isLoading;
@@ -47,13 +47,13 @@ class VehicleProvider with ChangeNotifier {
       onError: (error) {
         _isLoading = false;
         _errorMessage = 'Error al cargar vehículos: $error';
-        print('Error en loadVehicles: $error'); // Para debug
+
         notifyListeners();
       },
     );
   }
 
-  // Cargar todos los vehículos (incluye no disponibles) - para uso admin
+  // Cargar todos los vehículos
   void loadAllVehicles() {
     _isLoading = true;
     _errorMessage = null;
@@ -69,7 +69,6 @@ class VehicleProvider with ChangeNotifier {
       onError: (error) {
         _isLoading = false;
         _errorMessage = 'Error al cargar todos los vehículos: $error';
-        print('Error en loadAllVehicles: $error');
         notifyListeners();
       },
     );

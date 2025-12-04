@@ -70,7 +70,7 @@ class ReservationProvider with ChangeNotifier {
         _reservationService.getReservationsByVehicleStream(vehicleId).listen(
       (reservations) async {
         try {
-          // Filtrar por seguridad (el query ya filtra por vehicleId)
+          // Filtrar por seguridad
           final filtered =
               reservations.where((r) => r.vehicleId == vehicleId).toList();
 
@@ -107,7 +107,7 @@ class ReservationProvider with ChangeNotifier {
     super.dispose();
   }
 
-  // Actualizar estado de una reserva (ej: completar)
+  // Actualizar estado de una reserva
   Future<bool> updateReservationStatus(
       String reservationId, String newStatus) async {
     try {

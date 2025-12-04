@@ -22,7 +22,7 @@ class ReviewModel {
     required this.nombreUsuario,
   });
 
-  // Convertir de Map a ReviewModel (desde Firestore)
+  // Convertir de Map a ReviewModel
   factory ReviewModel.fromMap(Map<String, dynamic> map, String id) {
     return ReviewModel(
       id: id,
@@ -36,7 +36,7 @@ class ReviewModel {
     );
   }
 
-  // Convertir de ReviewModel a Map (para guardar en Firestore)
+  // Convertir de ReviewModel a Map
   Map<String, dynamic> toMap() {
     return {
       'userId': userId,

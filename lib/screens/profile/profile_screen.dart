@@ -162,7 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const SizedBox(height: AppSpacing.lg),
 
-                // Nombre y email (no editables en vista)
+                // Nombre y email
                 if (!_isEditing) ...[
                   Text(
                     user.nombre,

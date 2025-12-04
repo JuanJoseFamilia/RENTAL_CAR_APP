@@ -98,7 +98,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 ),
                 const SizedBox(height: AppSpacing.sm),
 
-                // Botón de ver reservaciones (alternativa al icono en AppBar)
+                // Botón de ver reservaciones
                 OutlinedButton.icon(
                   onPressed: () {
                     Navigator.push(

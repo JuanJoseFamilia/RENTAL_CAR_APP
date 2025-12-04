@@ -128,7 +128,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// Widget que decide si mostrar Login o Home según el estado de autenticación
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 

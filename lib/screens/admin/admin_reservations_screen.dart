@@ -133,7 +133,7 @@ class _AdminReservationsScreenState extends State<AdminReservationsScreen> {
                 Icons.cancel,
                 Colors.red,
               ),
-              const SizedBox(width: 80), // Espaciador para balance visual
+              const SizedBox(width: 80),
             ],
           ),
         ],

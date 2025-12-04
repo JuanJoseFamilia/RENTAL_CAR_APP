@@ -142,7 +142,6 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header con estado
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -178,7 +177,7 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
               // Información del vehículo
               Row(
                 children: [
-                  // Imagen (si está disponible)
+                  // Imagen
                   if (reservation.vehicleImagenUrl != null)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(AppBorderRadius.sm),
@@ -300,7 +299,7 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
                 ],
               ),
 
-              // Botones de acción (solo para reservas activas)
+              // Botones de acción
               if (reservation.canBeCancelled) ...[
                 const SizedBox(height: AppSpacing.md),
                 Row(
@@ -320,7 +319,7 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
                 ),
               ],
 
-              // Botón para dejar reseña (solo para reservas completadas)
+              // Botón para dejar reseña
               if (reservation.canBeReviewed) ...[
                 const SizedBox(height: AppSpacing.md),
                 Row(
