@@ -146,14 +146,26 @@ class VehicleService {
     }
   }
 
-  // Crear nuevo vehículo (solo admin)
-  Future<String> createVehicle(VehicleModel vehicle) async {
-    try {
-      final docRef = await _firestore
-          .collection(FirebaseCollections.vehicles)
-          .add(vehicle.toMap());
+  // Generar un nuevo ID para un vehículo (no crea el documento)
+  String newVehicleId() {
+    return _firestore.collection(FirebaseCollections.vehicles).doc().id;
+  }
 
-      return docRef.id;
+  // Crear nuevo vehículo (solo admin). Si se provee `id`, se usará ese ID en lugar de add().
+  Future<String> createVehicle(VehicleModel vehicle, {String? id}) async {
+    try {
+      if (id == null) {
+        final docRef = await _firestore
+            .collection(FirebaseCollections.vehicles)
+            .add(vehicle.toMap());
+        return docRef.id;
+      } else {
+        await _firestore
+            .collection(FirebaseCollections.vehicles)
+            .doc(id)
+            .set(vehicle.toMap());
+        return id;
+      }
     } catch (e) {
       throw 'Error al crear vehículo: $e';
     }

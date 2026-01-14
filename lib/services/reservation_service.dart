@@ -56,25 +56,31 @@ class ReservationService {
     required double precioPorDia,
   }) async {
     try {
+      // Normalizar las fechas a mediodía para evitar desfaces por zona horaria al guardar en Firestore
+      final normalizedStart = DateTime(
+          fechaInicio.year, fechaInicio.month, fechaInicio.day, 12, 0, 0);
+      final normalizedEnd = DateTime(
+          fechaFin.year, fechaFin.month, fechaFin.day, 12, 0, 0);
+
       final isAvailable = await checkVehicleAvailability(
         vehicleId: vehicleId,
-        fechaInicio: fechaInicio,
-        fechaFin: fechaFin,
+        fechaInicio: normalizedStart,
+        fechaFin: normalizedEnd,
       );
 
       if (!isAvailable) {
         throw 'El vehículo no está disponible en estas fechas';
       }
 
-      final dias = AppDateUtils.daysBetween(fechaInicio, fechaFin) + 1;
+      final dias = AppDateUtils.daysBetween(normalizedStart, normalizedEnd) + 1;
       final precioTotal = dias * precioPorDia;
 
       final reservation = ReservationModel(
         id: '',
         userId: userId,
         vehicleId: vehicleId,
-        fechaInicio: fechaInicio,
-        fechaFin: fechaFin,
+        fechaInicio: normalizedStart,
+        fechaFin: normalizedEnd,
         precioTotal: precioTotal,
         estado: ReservationStatus.confirmed,
         fechaReserva: DateTime.now(),
@@ -177,7 +183,7 @@ class ReservationService {
         enrichedReservation = enrichedReservation.copyWith(
           vehicleMarca: vehicle.marca,
           vehicleModelo: vehicle.modelo,
-          vehicleImagenUrl: vehicle.imagenUrl,
+          vehicleImagenUrl: vehicle.portada,
         );
       }
 
@@ -207,7 +213,7 @@ class ReservationService {
         return reservation.copyWith(
           vehicleMarca: vehicle.marca,
           vehicleModelo: vehicle.modelo,
-          vehicleImagenUrl: vehicle.imagenUrl,
+          vehicleImagenUrl: vehicle.portada,
         );
       }
 
@@ -266,7 +272,7 @@ class ReservationService {
         return reservation.copyWith(
           vehicleMarca: vehicle.marca,
           vehicleModelo: vehicle.modelo,
-          vehicleImagenUrl: vehicle.imagenUrl,
+          vehicleImagenUrl: vehicle.portada,
         );
       }
 

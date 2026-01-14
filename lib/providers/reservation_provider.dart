@@ -9,6 +9,7 @@ import '../utils/date_utils.dart';
 class ReservationProvider with ChangeNotifier {
   final ReservationService _reservationService = ReservationService();
   StreamSubscription<List<ReservationModel>>? _vehicleReservationsSub;
+  StreamSubscription<List<ReservationModel>>? _activeVehicleReservationsSub;
 
   List<ReservationModel> _allReservations = [];
   List<ReservationModel> _activeReservations = [];
@@ -16,6 +17,10 @@ class ReservationProvider with ChangeNotifier {
   List<ReservationModel> _cancelledReservations = [];
   ReservationModel? _selectedReservation;
   List<ReservationModel> _vehicleReservations = [];
+  List<ReservationModel> _activeVehicleReservations = [];
+
+  // Días bloqueados (solo reservas activas)
+  Set<DateTime> _blockedDays = {};
 
   DateTime? _selectedStartDate;
   DateTime? _selectedEndDate;
@@ -30,6 +35,10 @@ class ReservationProvider with ChangeNotifier {
   List<ReservationModel> get cancelledReservations => _cancelledReservations;
   ReservationModel? get selectedReservation => _selectedReservation;
   List<ReservationModel> get vehicleReservations => _vehicleReservations;
+  List<ReservationModel> get activeVehicleReservations => _activeVehicleReservations;
+  Set<DateTime> get blockedDays => _blockedDays;
+  bool isDayBlocked(DateTime day) => _blockedDays.contains(AppDateUtils.getDateOnly(day));
+
   DateTime? get selectedStartDate => _selectedStartDate;
   DateTime? get selectedEndDate => _selectedEndDate;
   bool get isLoading => _isLoading;
@@ -101,9 +110,83 @@ class ReservationProvider with ChangeNotifier {
     );
   }
 
+  // Cargar solo reservas activas de un vehículo (pendiente/confirmada)
+  void loadActiveReservationsForVehicle(String vehicleId) {
+    _activeVehicleReservationsSub?.cancel();
+
+    _activeVehicleReservationsSub =
+        _reservationService.getReservationsByVehicleStream(vehicleId).listen(
+      (reservations) async {
+        try {
+          final filtered = reservations
+              .where((r) => r.vehicleId == vehicleId)
+              .where((r) => r.estado == 'pendiente' || r.estado == 'confirmada')
+              .toList();
+
+          if (filtered.isEmpty) {
+            _activeVehicleReservations = [];
+            _blockedDays = {};
+            notifyListeners();
+            return;
+          }
+
+          final futures = filtered.map((r) async {
+            final name = await _reservationService.getUserName(r.userId);
+            return r.copyWith(userName: name);
+          }).toList();
+
+          _activeVehicleReservations = await Future.wait(futures);
+
+          // Recalcular días bloqueados
+          _computeBlockedDays();
+
+          notifyListeners();
+        } catch (e) {
+          _errorMessage = e.toString();
+          notifyListeners();
+        }
+      },
+      onError: (error) {
+        _errorMessage = error.toString();
+        notifyListeners();
+      },
+    );
+  }
+
+  // Calcular días bloqueados a partir de reservas activas
+  void _computeBlockedDays() {
+    final Set<DateTime> blocked = {};
+
+    for (final r in _activeVehicleReservations) {
+      final start = AppDateUtils.getDateOnly(r.fechaInicio);
+      final end = AppDateUtils.getDateOnly(r.fechaFin);
+
+      final totalDays = AppDateUtils.daysBetween(start, end);
+      for (int i = 0; i <= totalDays; i++) {
+        blocked.add(start.add(Duration(days: i)));
+      }
+    }
+
+    _blockedDays = blocked;
+  }
+
+  // Verificar si un rango está libre localmente (sin días bloqueados)
+  bool isRangeAvailable(DateTime start, DateTime end) {
+    final s = AppDateUtils.getDateOnly(start);
+    final e = AppDateUtils.getDateOnly(end);
+
+    var current = s;
+    while (!current.isAfter(e)) {
+      if (_blockedDays.contains(current)) return false;
+      current = current.add(const Duration(days: 1));
+    }
+    return true;
+  }
+
   @override
   void dispose() {
     _vehicleReservationsSub?.cancel();
+    _activeVehicleReservationsSub?.cancel();
     super.dispose();
   }
 
@@ -124,6 +207,12 @@ class ReservationProvider with ChangeNotifier {
         _vehicleReservations[idx] =
             _vehicleReservations[idx].copyWith(estado: newStatus);
       }
+
+      // Mantener lista activa sincronizada localmente y recalcular días bloqueados
+      _activeVehicleReservations = _vehicleReservations
+          .where((r) => r.estado == 'pendiente' || r.estado == 'confirmada')
+          .toList();
+      _computeBlockedDays();
 
       _isLoading = false;
       notifyListeners();
@@ -217,6 +306,9 @@ class ReservationProvider with ChangeNotifier {
         precioPorDia: pricePerDay,
       );
 
+      // Recargar reservas activas del vehículo para actualizar días bloqueados inmediatamente
+      loadActiveReservationsForVehicle(vehicleId);
+
       // Limpiar fechas seleccionadas
       clearSelectedDates();
 
@@ -263,6 +355,18 @@ class ReservationProvider with ChangeNotifier {
       notifyListeners();
 
       await _reservationService.cancelReservation(reservationId);
+
+      // Actualizar listas locales inmediatamente
+      final idx = _vehicleReservations.indexWhere((r) => r.id == reservationId);
+      if (idx != -1) {
+        _vehicleReservations[idx] =
+            _vehicleReservations[idx].copyWith(estado: 'cancelada');
+      }
+
+      _activeVehicleReservations = _vehicleReservations
+          .where((r) => r.estado == 'pendiente' || r.estado == 'confirmada')
+          .toList();
+      _computeBlockedDays();
 
       _isLoading = false;
       notifyListeners();

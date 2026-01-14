@@ -63,20 +63,28 @@ class _AdminVehicleReservationsScreenState
                       if (value == 'completar') {
                         final ok = await reservationProvider
                             .updateReservationStatus(r.id, 'completada');
+                        if (!mounted) return;
                         if (ok) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Reserva marcada como completada')),
-                          );
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content:
+                                      Text('Reserva marcada como completada')),
+                            );
+                          });
                         }
                       } else if (value == 'cancelar') {
                         final ok = await reservationProvider
                             .updateReservationStatus(r.id, 'cancelada');
+                        if (!mounted) return;
                         if (ok) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Reserva cancelada')),
-                          );
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Reserva cancelada')),
+                            );
+                          });
                         }
                       }
                     },

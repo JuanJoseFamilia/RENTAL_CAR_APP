@@ -36,7 +36,7 @@ class VehicleCard extends StatelessWidget {
               child: Stack(
                 children: [
                   CachedNetworkImage(
-                    imageUrl: vehicle.imagenUrl,
+                    imageUrl: vehicle.portada ?? '',
                     height: 180,
                     width: double.infinity,
                     fit: BoxFit.cover,

@@ -224,10 +224,10 @@ class _AddReviewScreenState extends State<AddReviewScreen> {
               Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withAlpha((0.1 * 255).round()),
                   borderRadius: BorderRadius.circular(AppBorderRadius.md),
                   border: Border.all(
-                    color: AppColors.primary.withOpacity(0.3),
+                    color: AppColors.primary.withAlpha((0.3 * 255).round()),
                   ),
                 ),
                 child: Row(
@@ -243,7 +243,7 @@ class _AddReviewScreenState extends State<AddReviewScreen> {
                         'Tu reseña ayudará a otros usuarios a tomar mejores decisiones.',
                         style: TextStyle(
                           fontSize: AppFontSizes.sm,
-                          color: AppColors.primary.withOpacity(0.8),
+                          color: AppColors.primary.withAlpha((0.8 * 255).round()),
                           height: 1.4,
                         ),
                       ),

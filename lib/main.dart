@@ -15,6 +15,10 @@ import 'providers/admin_reservation_provider.dart';
 // Screens
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/review/add_review_screen.dart';
+
+// Models
+import 'models/reservation_model.dart';
 
 // Utils
 import 'utils/constants.dart';
@@ -122,6 +126,15 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
+        onGenerateRoute: (settings) {
+          if (settings.name == '/add-review') {
+            final reservation = settings.arguments as ReservationModel;
+            return MaterialPageRoute(
+              builder: (_) => AddReviewScreen(reservation: reservation),
+            );
+          }
+          return null;
+        },
         home: const AuthWrapper(),
       ),
     );

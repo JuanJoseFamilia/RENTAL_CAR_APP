@@ -107,4 +107,18 @@ class Validators {
 
     return null;
   }
+
+  // Validar URL básica (http/https)
+  static String? validateUrl(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'La URL es requerida';
+    }
+
+    final urlRegex = RegExp(r'^(https?:\/\/)[^\s]+$', caseSensitive: false);
+    if (!urlRegex.hasMatch(value.trim())) {
+      return 'Ingresa una URL válida (http/https)';
+    }
+
+    return null;
+  }
 }

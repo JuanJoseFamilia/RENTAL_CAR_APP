@@ -179,7 +179,7 @@ class _AdminReservationDetailScreenState
             end: Alignment.bottomCenter,
             colors: [
               Colors.transparent,
-              Colors.black.withOpacity(0.5),
+              Colors.black.withAlpha((0.5 * 255).round()),
             ],
           ),
         ),
@@ -222,7 +222,7 @@ class _AdminReservationDetailScreenState
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.1),
+        color: statusColor.withAlpha((0.1 * 255).round()),
         borderRadius: BorderRadius.circular(AppBorderRadius.lg),
         border: Border.all(color: statusColor, width: 2),
       ),
@@ -406,6 +406,9 @@ class _AdminReservationDetailScreenState
         ],
       ),
     );
+
+    // Evitar usar `context` si el widget fue desmontado mientras se mostraba el diálogo
+    if (!mounted) return;
 
     if (confirm != true) return;
 

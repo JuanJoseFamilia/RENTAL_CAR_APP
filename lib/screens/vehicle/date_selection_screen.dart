@@ -7,6 +7,7 @@ import '../../providers/reservation_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
 import '../../widgets/custom_buttom.dart';
+import 'vehicle_gallery_screen.dart';
 
 class DateSelectionScreen extends StatefulWidget {
   final VehicleModel vehicle;
@@ -28,9 +29,11 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
   @override
   void initState() {
     super.initState();
-    // Limpiar fechas seleccionadas previas
+    // Limpiar fechas seleccionadas previas y cargar reservas activas del vehículo
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ReservationProvider>().clearSelectedDates();
+      final provider = context.read<ReservationProvider>();
+      provider.clearSelectedDates();
+      provider.loadActiveReservationsForVehicle(widget.vehicle.id);
     });
   }
 
@@ -50,21 +53,42 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
               color: AppColors.white,
               child: Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-                    child: Image.network(
-                      widget.vehicle.imagenUrl,
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: 80,
-                          height: 80,
-                          color: AppColors.grey,
-                          child: const Icon(Icons.directions_car),
+                  GestureDetector(
+                    onTap: () {
+                      if (widget.vehicle.imagenes.isNotEmpty) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => VehicleGalleryScreen(
+                              images: widget.vehicle.imagenes,
+                            ),
+                          ),
                         );
-                      },
+                      }
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+                      child: widget.vehicle.portada != null && widget.vehicle.portada!.isNotEmpty
+                          ? Image.network(
+                              widget.vehicle.portada!,
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  width: 80,
+                                  height: 80,
+                                  color: AppColors.grey,
+                                  child: const Icon(Icons.directions_car),
+                                );
+                              },
+                            )
+                          : Container(
+                              width: 80,
+                              height: 80,
+                              color: AppColors.grey,
+                              child: const Icon(Icons.directions_car),
+                            ),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -128,218 +152,250 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: Card(
                 elevation: 2,
-                child: TableCalendar(
-                  firstDay: DateTime.now(),
-                  lastDay: DateTime.now().add(const Duration(days: 365)),
-                  focusedDay: _focusedDay,
-                  calendarFormat: CalendarFormat.month,
-                  selectedDayPredicate: (day) {
-                    if (_selectedStartDate != null &&
-                        _selectedEndDate != null) {
-                      return AppDateUtils.isSameDay(day, _selectedStartDate!) ||
-                          AppDateUtils.isSameDay(day, _selectedEndDate!);
-                    } else if (_selectedStartDate != null) {
-                      return AppDateUtils.isSameDay(day, _selectedStartDate!);
-                    }
-                    return false;
-                  },
-                  rangeStartDay: _selectedStartDate,
-                  rangeEndDay: _selectedEndDate,
-                  rangeSelectionMode: RangeSelectionMode.enforced,
-                  onDaySelected: (selectedDay, focusedDay) {
-                    setState(() {
-                      _focusedDay = focusedDay;
+                child: Consumer<ReservationProvider>(
+                  builder: (context, reservationProvider, _) {
+                    final blocked = reservationProvider.blockedDays;
 
-                      if (_selectedStartDate == null ||
-                          (_selectedStartDate != null &&
-                              _selectedEndDate != null)) {
-                        // Iniciar nueva selección
-                        _selectedStartDate = selectedDay;
-                        _selectedEndDate = null;
-                      } else if (_selectedStartDate != null &&
-                          _selectedEndDate == null) {
-                        // Seleccionar fecha de fin
-                        if (selectedDay.isAfter(_selectedStartDate!)) {
-                          _selectedEndDate = selectedDay;
-                        } else {
-                          _selectedStartDate = selectedDay;
-                          _selectedEndDate = null;
+                    return TableCalendar(
+                      firstDay: DateTime.now(),
+                      lastDay: DateTime.now().add(const Duration(days: 365)),
+                      focusedDay: _focusedDay,
+                      calendarFormat: CalendarFormat.month,
+                      selectedDayPredicate: (day) {
+                        if (_selectedStartDate != null &&
+                            _selectedEndDate != null) {
+                          return AppDateUtils.isSameDay(day, _selectedStartDate!) ||
+                              AppDateUtils.isSameDay(day, _selectedEndDate!);
+                        } else if (_selectedStartDate != null) {
+                          return AppDateUtils.isSameDay(day, _selectedStartDate!);
                         }
-                      }
+                        return false;
+                      },
+                      rangeStartDay: _selectedStartDate,
+                      rangeEndDay: _selectedEndDate,
+                      rangeSelectionMode: RangeSelectionMode.enforced,
+                      onDaySelected: (selectedDay, focusedDay) {
+                        setState(() {
+                          _focusedDay = focusedDay;
 
-                      // Actualizar provider
-                      context.read<ReservationProvider>().selectDates(
-                            _selectedStartDate,
-                            _selectedEndDate,
-                          );
-                    });
+                          // Evitar seleccionar días bloqueados
+                          final selectedDateOnly = AppDateUtils.getDateOnly(selectedDay);
+                          if (blocked.contains(selectedDateOnly)) return;
+
+                          if (_selectedStartDate == null ||
+                              (_selectedStartDate != null &&
+                                  _selectedEndDate != null)) {
+                            // Iniciar nueva selección
+                            _selectedStartDate = selectedDay;
+                            _selectedEndDate = null;
+                          } else if (_selectedStartDate != null &&
+                              _selectedEndDate == null) {
+                            // Seleccionar fecha de fin (validar que el rango no contenga días bloqueados)
+                            if (selectedDay.isAfter(_selectedStartDate!)) {
+                              if (reservationProvider.isRangeAvailable(
+                                  _selectedStartDate!, selectedDay)) {
+                                _selectedEndDate = selectedDay;
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(AppStrings.vehicleNotAvailable),
+                                    backgroundColor: AppColors.error,
+                                  ),
+                                );
+                              }
+                            } else {
+                              _selectedStartDate = selectedDay;
+                              _selectedEndDate = null;
+                            }
+                          }
+
+                          // Actualizar provider
+                          context.read<ReservationProvider>().selectDates(
+                                _selectedStartDate,
+                                _selectedEndDate,
+                              );
+                        });
+                      },
+                      enabledDayPredicate: (day) {
+                        // Deshabilitar días pasados y días bloqueados por reservas activas
+                        if (AppDateUtils.isPast(day)) return false;
+                        final dayOnly = AppDateUtils.getDateOnly(day);
+                        if (blocked.contains(dayOnly)) return false;
+                        return true;
+                      },
+                      calendarStyle: CalendarStyle(
+                        selectedDecoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        todayDecoration: BoxDecoration(
+                          color: AppColors.primary.withAlpha((0.3 * 255).round()),
+                          shape: BoxShape.circle,
+                        ),
+                        rangeHighlightColor: AppColors.primary.withAlpha((0.2 * 255).round()),
+                        rangeStartDecoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        rangeEndDecoration: const BoxDecoration(
+                          color: AppColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        disabledDecoration: BoxDecoration(
+                          color: AppColors.grey.withAlpha((0.3 * 255).round()),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      headerStyle: const HeaderStyle(
+                        formatButtonVisible: false,
+                        titleCentered: true,
+                        titleTextStyle: TextStyle(
+                          fontSize: AppFontSizes.lg,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    );
                   },
-                  enabledDayPredicate: (day) {
-                    // Deshabilitar días pasados
-                    return !AppDateUtils.isPast(day);
-                  },
-                  calendarStyle: CalendarStyle(
-                    selectedDecoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    todayDecoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                    ),
-                    rangeHighlightColor: AppColors.primary.withOpacity(0.2),
-                    rangeStartDecoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    rangeEndDecoration: const BoxDecoration(
-                      color: AppColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    disabledDecoration: BoxDecoration(
-                      color: AppColors.grey.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  headerStyle: const HeaderStyle(
-                    formatButtonVisible: false,
-                    titleCentered: true,
-                    titleTextStyle: TextStyle(
-                      fontSize: AppFontSizes.lg,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                 ),
               ),
             ),
 
             const SizedBox(height: AppSpacing.lg),
 
-            // Resumen de selección
+            // Resumen y botón al final del contenido (requiere hacer scroll para verlo)
             Consumer<ReservationProvider>(
               builder: (context, reservationProvider, _) {
-                if (reservationProvider.selectedStartDate != null &&
-                    reservationProvider.selectedEndDate != null) {
-                  final days = reservationProvider.selectedDays;
-                  final totalPrice = reservationProvider.calculateTotalPrice(
-                    widget.vehicle.precioPorDia,
-                  );
+                final canProceed = reservationProvider.selectedStartDate != null &&
+                    reservationProvider.selectedEndDate != null;
+                final days = reservationProvider.selectedDays;
+                final totalPrice = canProceed
+                    ? reservationProvider
+                        .calculateTotalPrice(widget.vehicle.precioPorDia)
+                    : 0.0;
 
-                  return Container(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                      border: Border.all(color: AppColors.primary),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Fecha de inicio:',
-                              style: TextStyle(
-                                fontSize: AppFontSizes.sm,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            Text(
-                              AppDateUtils.formatDate(
-                                reservationProvider.selectedStartDate!,
-                              ),
-                              style: const TextStyle(
-                                fontSize: AppFontSizes.sm,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withAlpha((0.08 * 255).round()),
+                          borderRadius:
+                              BorderRadius.circular(AppBorderRadius.md),
+                          border: Border.all(color: AppColors.primary),
                         ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Fecha de fin:',
-                              style: TextStyle(
-                                fontSize: AppFontSizes.sm,
-                                color: AppColors.textSecondary,
+                        child: canProceed
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'Fecha de inicio:',
+                                        style: TextStyle(
+                                          fontSize: AppFontSizes.sm,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                      Text(
+                                        AppDateUtils.formatDate(
+                                            reservationProvider
+                                                .selectedStartDate!),
+                                        style: const TextStyle(
+                                          fontSize: AppFontSizes.sm,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppSpacing.sm),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'Fecha de fin:',
+                                        style: TextStyle(
+                                          fontSize: AppFontSizes.sm,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                      Text(
+                                        AppDateUtils.formatDate(
+                                            reservationProvider
+                                                .selectedEndDate!),
+                                        style: const TextStyle(
+                                          fontSize: AppFontSizes.sm,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Divider(height: AppSpacing.lg),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Total ($days ${days == 1 ? 'día' : 'días'}):',
+                                        style: const TextStyle(
+                                          fontSize: AppFontSizes.md,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        '\$${totalPrice.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          fontSize: AppFontSizes.xl,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              )
+                            : const Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    'Selecciona rango de fechas para ver total',
+                                    style: TextStyle(
+                                      fontSize: AppFontSizes.sm,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            Text(
-                              AppDateUtils.formatDate(
-                                reservationProvider.selectedEndDate!,
-                              ),
-                              style: const TextStyle(
-                                fontSize: AppFontSizes.sm,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: AppSpacing.lg),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Total ($days ${days == 1 ? 'día' : 'días'}):',
-                              style: const TextStyle(
-                                fontSize: AppFontSizes.md,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              '\$${totalPrice.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: AppFontSizes.xl,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
+                      ),
+
+                      const SizedBox(height: AppSpacing.md),
+
+                      CustomButton(
+                        text: AppStrings.confirmReservation,
+                        onPressed:
+                            canProceed ? _handleConfirmReservation : () {},
+                        isLoading: reservationProvider.isLoading,
+                        backgroundColor: canProceed ? null : AppColors.grey,
+                      ),
+
+                      // Espacio extra para evitar que el botón se corte en pantallas pequeñas
+                      const SizedBox(height: AppSpacing.xxl),
+                    ],
+                  ),
+                );
               },
             ),
-
-            const SizedBox(height: AppSpacing.xl),
           ],
         ),
       ),
-      bottomSheet: Consumer<ReservationProvider>(
-        builder: (context, reservationProvider, _) {
-          final canProceed = reservationProvider.selectedStartDate != null &&
-              reservationProvider.selectedEndDate != null;
 
-          return Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              child: CustomButton(
-                text: AppStrings.confirmReservation,
-                onPressed: canProceed ? _handleConfirmReservation : () {},
-                isLoading: reservationProvider.isLoading,
-                backgroundColor: canProceed ? null : AppColors.grey,
-              ),
-            ),
-          );
-        },
-      ),
     );
   }
 

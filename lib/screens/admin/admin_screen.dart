@@ -69,7 +69,7 @@ class _AdminScreenState extends State<AdminScreen> {
           // Header con botones de acciones rápidas
           Container(
             padding: const EdgeInsets.all(AppSpacing.lg),
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primary.withAlpha((0.1 * 255).round()),
             child: Column(
               children: [
                 const Text(
@@ -228,6 +228,8 @@ class _AdminScreenState extends State<AdminScreen> {
     try {
       final vehicleProvider = context.read<VehicleProvider>();
       await vehicleProvider.toggleVehicleAvailability(vehicleId, currentStatus);
+
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

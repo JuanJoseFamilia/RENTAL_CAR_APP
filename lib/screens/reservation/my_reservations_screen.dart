@@ -41,7 +41,7 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
           controller: _tabController,
           indicatorColor: AppColors.white,
           labelColor: AppColors.white,
-          unselectedLabelColor: AppColors.white.withOpacity(0.7),
+          unselectedLabelColor: AppColors.white.withAlpha((0.7 * 255).round()),
           tabs: const [
             Tab(text: AppStrings.active),
             Tab(text: AppStrings.completed),

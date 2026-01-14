@@ -8,7 +8,8 @@ class VehicleModel {
   final int anio;
   final String tipo;
   final double precioPorDia;
-  final String imagenUrl;
+  final List<String> imagenes; // Lista de URLs de imágenes
+  final String? imagenPortada; // URL de la imagen de portada (opcional)
   final String descripcion;
   final bool disponible;
   final int capacidad;
@@ -24,7 +25,8 @@ class VehicleModel {
     required this.anio,
     required this.tipo,
     required this.precioPorDia,
-    required this.imagenUrl,
+    this.imagenes = const [],
+    this.imagenPortada,
     required this.descripcion,
     this.disponible = true,
     required this.capacidad,
@@ -43,7 +45,8 @@ class VehicleModel {
       anio: map['anio'] ?? 0,
       tipo: map['tipo'] ?? '',
       precioPorDia: (map['precioPorDia'] ?? 0).toDouble(),
-      imagenUrl: map['imagenUrl'] ?? '',
+      imagenes: List<String>.from(map['imagenes'] ?? []),
+      imagenPortada: map['imagenPortada'] as String?,
       descripcion: map['descripcion'] ?? '',
       disponible: map['disponible'] ?? true,
       capacidad: map['capacidad'] ?? 0,
@@ -62,7 +65,8 @@ class VehicleModel {
       'anio': anio,
       'tipo': tipo,
       'precioPorDia': precioPorDia,
-      'imagenUrl': imagenUrl,
+      'imagenes': imagenes,
+      'imagenPortada': imagenPortada,
       'descripcion': descripcion,
       'disponible': disponible,
       'capacidad': capacidad,
@@ -81,7 +85,7 @@ class VehicleModel {
     if (totalCalificaciones == 0) {
       return 'Sin calificaciones';
     }
-    return '${calificacionPromedio.toStringAsFixed(1)} (${totalCalificaciones} ${totalCalificaciones == 1 ? 'reseña' : 'reseñas'})';
+    return '${calificacionPromedio.toStringAsFixed(1)} ($totalCalificaciones ${totalCalificaciones == 1 ? 'reseña' : 'reseñas'})';
   }
 
   // Crear copia con campos modificados
@@ -92,7 +96,8 @@ class VehicleModel {
     int? anio,
     String? tipo,
     double? precioPorDia,
-    String? imagenUrl,
+    List<String>? imagenes,
+    String? imagenPortada,
     String? descripcion,
     bool? disponible,
     int? capacidad,
@@ -108,7 +113,8 @@ class VehicleModel {
       anio: anio ?? this.anio,
       tipo: tipo ?? this.tipo,
       precioPorDia: precioPorDia ?? this.precioPorDia,
-      imagenUrl: imagenUrl ?? this.imagenUrl,
+      imagenes: imagenes ?? this.imagenes,
+      imagenPortada: imagenPortada ?? this.imagenPortada,
       descripcion: descripcion ?? this.descripcion,
       disponible: disponible ?? this.disponible,
       capacidad: capacidad ?? this.capacidad,
@@ -117,6 +123,13 @@ class VehicleModel {
       totalCalificaciones: totalCalificaciones ?? this.totalCalificaciones,
       fechaCreacion: fechaCreacion ?? this.fechaCreacion,
     );
+  }
+
+  // Obtener imagen de portada (si existe)
+  String? get portada {
+    if (imagenPortada != null && imagenPortada!.isNotEmpty) return imagenPortada;
+    if (imagenes.isNotEmpty) return imagenes.first;
+    return null;
   }
 
   @override

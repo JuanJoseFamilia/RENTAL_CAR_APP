@@ -156,23 +156,15 @@ class ReviewService {
     }
   }
 
-  // Actualizar reseña (opcional, si quieres permitir edición)
+  // Actualizar reseña (deshabilitado): las reseñas no se pueden editar una vez creadas.
+  // Si se requiere edición por parte de un admin, implementar un método separado con comprobaciones de permisos.
   Future<void> updateReview({
     required String reviewId,
     required int calificacion,
     required String comentario,
   }) async {
-    try {
-      await _firestore
-          .collection(FirebaseCollections.reviews)
-          .doc(reviewId)
-          .update({
-        'calificacion': calificacion,
-        'comentario': comentario,
-      });
-    } catch (e) {
-      throw 'Error al actualizar reseña: $e';
-    }
+    // Rechazamos cualquier intento de edición desde la app cliente.
+    throw 'Edición de reseñas no permitida';
   }
 
   // Eliminar reseña
@@ -208,7 +200,7 @@ class ReviewService {
           .toList();
 
       final total = reviews.length;
-      final suma = reviews.fold(0, (sum, review) => sum + review.calificacion);
+      final suma = reviews.fold(0, (acc, review) => acc + review.calificacion);
       final promedio = suma / total;
 
       final distribucion = {5: 0, 4: 0, 3: 0, 2: 0, 1: 0};

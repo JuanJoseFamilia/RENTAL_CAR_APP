@@ -14,8 +14,6 @@ class VehicleProvider with ChangeNotifier {
   String? _errorMessage;
   String _searchQuery = '';
   String? _selectedType;
-  double? _minPrice;
-  double? _maxPrice;
 
   // Getters
   List<VehicleModel> get vehicles =>
@@ -107,8 +105,6 @@ class VehicleProvider with ChangeNotifier {
   // Filtrar por rango de precio
   Future<void> filterByPrice({double? minPrice, double? maxPrice}) async {
     try {
-      _minPrice = minPrice;
-      _maxPrice = maxPrice;
       _isLoading = true;
       notifyListeners();
 
@@ -157,8 +153,6 @@ class VehicleProvider with ChangeNotifier {
   void clearFilters() {
     _searchQuery = '';
     _selectedType = null;
-    _minPrice = null;
-    _maxPrice = null;
     _filteredVehicles = _vehicles;
     notifyListeners();
   }

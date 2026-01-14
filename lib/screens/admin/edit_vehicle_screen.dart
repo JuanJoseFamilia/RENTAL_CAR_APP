@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../models/vehicle_model.dart';
 import '../../providers/vehicle_provider.dart';
 import '../../services/vehicle_service.dart';
+// Images provided via URL only (no local picker/upload in this screen)
 import '../../utils/constants.dart';
 import '../../utils/validators.dart';
 import '../../widgets/custom_text_field.dart';
@@ -26,7 +27,8 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
   late TextEditingController _modeloController;
   late TextEditingController _anioController;
   late TextEditingController _precioPorDiaController;
-  late TextEditingController _imagenUrlController;
+  final List<TextEditingController> _imageUrlControllers = [];
+  late TextEditingController _coverUrlController;
   late TextEditingController _descripcionController;
   late TextEditingController _capacidadController;
 
@@ -43,12 +45,14 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
         TextEditingController(text: widget.vehicle.anio.toString());
     _precioPorDiaController =
         TextEditingController(text: widget.vehicle.precioPorDia.toString());
-    _imagenUrlController =
-        TextEditingController(text: widget.vehicle.imagenUrl);
-    _descripcionController =
-        TextEditingController(text: widget.vehicle.descripcion);
-    _capacidadController =
-        TextEditingController(text: widget.vehicle.capacidad.toString());
+
+    // Prefill URL controllers from existing vehicle data
+    for (final url in widget.vehicle.imagenes) { _imageUrlControllers.add(TextEditingController(text: url)); }
+    if (_imageUrlControllers.isEmpty) { _imageUrlControllers.add(TextEditingController()); }
+
+    _coverUrlController = TextEditingController(text: widget.vehicle.imagenPortada ?? (widget.vehicle.imagenes.isNotEmpty ? widget.vehicle.imagenes.first : ''));
+    _descripcionController = TextEditingController(text: widget.vehicle.descripcion);
+    _capacidadController = TextEditingController(text: widget.vehicle.capacidad.toString());
     _tipoSeleccionado = widget.vehicle.tipo;
     _transmisionSeleccionada = widget.vehicle.transmision;
   }
@@ -59,11 +63,14 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
     _modeloController.dispose();
     _anioController.dispose();
     _precioPorDiaController.dispose();
-    _imagenUrlController.dispose();
     _descripcionController.dispose();
     _capacidadController.dispose();
+    _coverUrlController.dispose();
+    for (final c in _imageUrlControllers) { c.dispose(); }
     super.dispose();
   }
+
+
 
   Future<void> _handleUpdate() async {
     if (!_formKey.currentState!.validate()) return;
@@ -73,16 +80,20 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
     try {
       final vehicleService = VehicleService();
 
+      final finalImages = _imageUrlControllers.map((c) => c.text.trim()).where((s) => s.isNotEmpty).toList();
+      String? coverUrl = _coverUrlController.text.trim().isNotEmpty ? _coverUrlController.text.trim() : (finalImages.isNotEmpty ? finalImages.first : null);
+
       final updates = {
         'marca': _marcaController.text.trim(),
         'modelo': _modeloController.text.trim(),
         'anio': int.parse(_anioController.text.trim()),
         'tipo': _tipoSeleccionado,
         'precioPorDia': double.parse(_precioPorDiaController.text.trim()),
-        'imagenUrl': _imagenUrlController.text.trim(),
         'descripcion': _descripcionController.text.trim(),
         'capacidad': int.parse(_capacidadController.text.trim()),
         'transmision': _transmisionSeleccionada,
+        'imagenes': finalImages,
+        'imagenPortada': coverUrl,
       };
 
       await vehicleService.updateVehicle(widget.vehicle.id, updates);
@@ -166,7 +177,7 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
               ),
               const SizedBox(height: AppSpacing.xs),
               DropdownButtonFormField<String>(
-                value: _tipoSeleccionado,
+                initialValue: _tipoSeleccionado,
                 decoration: InputDecoration(
                   prefixIcon:
                       const Icon(Icons.category, color: AppColors.primary),
@@ -202,7 +213,7 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
               ),
               const SizedBox(height: AppSpacing.xs),
               DropdownButtonFormField<String>(
-                value: _transmisionSeleccionada,
+                initialValue: _transmisionSeleccionada,
                 decoration: InputDecoration(
                   prefixIcon:
                       const Icon(Icons.settings, color: AppColors.primary),
@@ -228,12 +239,81 @@ class _EditVehicleScreenState extends State<EditVehicleScreen> {
               ),
               const SizedBox(height: AppSpacing.md),
 
+              const Text(
+                'Imagen de Portada (URL)',
+                style: TextStyle(
+                  fontSize: AppFontSizes.sm,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
               CustomTextField(
-                controller: _imagenUrlController,
-                label: 'URL de Imagen',
-                prefixIcon: Icons.image,
-                validator: (value) =>
-                    Validators.validateRequired(value, 'URL de imagen'),
+                controller: _coverUrlController,
+                label: 'URL de la imagen de portada',
+                hint: 'https://mi-host.com/imagen.jpg',
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) return null; // opcional
+                  return Validators.validateUrl(value);
+                },
+              ),
+              const SizedBox(height: AppSpacing.md),
+
+              const Text(
+                'Imágenes del Vehículo (URLs)',
+                style: TextStyle(
+                  fontSize: AppFontSizes.sm,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Column(
+                children: List.generate(_imageUrlControllers.length, (index) {
+                  final controller = _imageUrlControllers[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: controller,
+                            decoration: InputDecoration(
+                              hintText: 'https://mi-host.com/imagen.jpg',
+                              labelText: 'Imagen ${index + 1}',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppBorderRadius.md)),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) return null;
+                              return Validators.validateUrl(value);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (_imageUrlControllers.length > 1)
+                          IconButton(
+                            onPressed: () {
+                              setState(() {
+                                _imageUrlControllers.removeAt(index).dispose();
+                              });
+                            },
+                            icon: const Icon(Icons.delete_forever, color: Colors.red),
+                          ),
+                      ],
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _imageUrlControllers.add(TextEditingController());
+                    });
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Añadir URL'),
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
 

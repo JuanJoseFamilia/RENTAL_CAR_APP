@@ -9,6 +9,7 @@ import '../../widgets/loanding_widget.dart';
 import '../../widgets/review_card.dart';
 import '../../widgets/custom_buttom.dart';
 import 'date_selection_screen.dart';
+import 'vehicle_gallery_screen.dart';
 
 class VehicleDetailScreen extends StatefulWidget {
   final String vehicleId;
@@ -67,19 +68,34 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
             expandedHeight: 300,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              background: CachedNetworkImage(
-                imageUrl: vehicle.imagenUrl,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: AppColors.grey,
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: AppColors.grey,
-                  child: const Icon(
-                    Icons.directions_car,
-                    size: 100,
-                    color: AppColors.textSecondary,
+              background: GestureDetector(
+                onTap: () {
+                  if (vehicle.imagenes.isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => VehicleGalleryScreen(
+                          images: vehicle.imagenes,
+                          initialIndex: vehicle.imagenes.indexWhere((u) => u == vehicle.portada),
+                        ),
+                      ),
+                    );
+                  }
+                },
+                child: CachedNetworkImage(
+                  imageUrl: vehicle.portada ?? '',
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => Container(
+                    color: AppColors.grey,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    color: AppColors.grey,
+                    child: const Icon(
+                      Icons.directions_car,
+                      size: 100,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
               ),
@@ -321,7 +337,7 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
           color: AppColors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withAlpha((0.1 * 255).round()),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),

@@ -81,109 +81,113 @@ class _AdminReservationsScreenState extends State<AdminReservationsScreen> {
 
   Widget _buildStatsHeader(AdminReservationProvider provider) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs, horizontal: AppSpacing.sm),
       decoration: BoxDecoration(
         color: AppColors.primary,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+            color: Colors.black.withAlpha((0.06 * 255).round()),
+            blurRadius: 2,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildStatCard(
-                'Total',
-                provider.totalReservations.toString(),
-                Icons.calendar_today,
-                Colors.white,
-              ),
-              _buildStatCard(
-                'Pendientes',
-                provider.pendingReservations.toString(),
-                Icons.hourglass_empty,
-                Colors.orange,
-              ),
-              _buildStatCard(
-                'Confirmadas',
-                provider.confirmedReservations.toString(),
-                Icons.check_circle,
-                Colors.green,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildStatCard(
-                'Completadas',
-                provider.completedReservations.toString(),
-                Icons.done_all,
-                Colors.blue,
-              ),
-              _buildStatCard(
-                'Canceladas',
-                provider.cancelledReservations.toString(),
-                Icons.cancel,
-                Colors.red,
-              ),
-              const SizedBox(width: 80),
-            ],
-          ),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            const SizedBox(width: AppSpacing.sm),
+            _buildStatCard(
+              'Total',
+              provider.totalReservations.toString(),
+              Icons.calendar_today,
+              Colors.white,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            _buildStatCard(
+              'Pendientes',
+              provider.pendingReservations.toString(),
+              Icons.hourglass_empty,
+              Colors.orange,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            _buildStatCard(
+              'Confirmadas',
+              provider.confirmedReservations.toString(),
+              Icons.check_circle,
+              Colors.green,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            _buildStatCard(
+              'Completadas',
+              provider.completedReservations.toString(),
+              Icons.done_all,
+              Colors.blue,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            _buildStatCard(
+              'Canceladas',
+              provider.cancelledReservations.toString(),
+              Icons.cancel,
+              Colors.red,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildStatCard(
       String label, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(AppBorderRadius.md),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+    return SizedBox(
+      width: 88,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
+        decoration: BoxDecoration(
+          color: Colors.white.withAlpha((0.12 * 255).round()),
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 16),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 10,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSearchBar(AdminReservationProvider provider) {
     return Padding(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
           hintText: 'Buscar por usuario o vehículo...',
-          prefixIcon: const Icon(Icons.search),
+          prefixIcon: const Icon(Icons.search, size: 18),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.clear),
+                  icon: const Icon(Icons.clear, size: 18),
                   onPressed: () {
                     _searchController.clear();
                     provider.searchReservations('');
@@ -191,7 +195,7 @@ class _AdminReservationsScreenState extends State<AdminReservationsScreen> {
                 )
               : null,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+            borderRadius: BorderRadius.circular(AppBorderRadius.md),
           ),
           filled: true,
           fillColor: Colors.grey[100],
@@ -221,8 +225,8 @@ class _AdminReservationsScreenState extends State<AdminReservationsScreen> {
     ];
 
     return Container(
-      height: 60,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: filters.length,
@@ -231,19 +235,25 @@ class _AdminReservationsScreenState extends State<AdminReservationsScreen> {
           final isSelected = provider.selectedFilter == filter['value'];
 
           return Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.sm),
+            padding: const EdgeInsets.only(right: AppSpacing.xs),
             child: FilterChip(
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              labelPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               selected: isSelected,
               label: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     filter['icon'] as IconData,
-                    size: 18,
+                    size: 16,
                     color: isSelected ? Colors.white : AppColors.primary,
                   ),
-                  const SizedBox(width: 4),
-                  Text(filter['label'] as String),
+                  const SizedBox(width: 6),
+                  Text(
+                    filter['label'] as String,
+                    style: const TextStyle(fontSize: 13),
+                  ),
                 ],
               ),
               onSelected: (_) {
@@ -253,6 +263,7 @@ class _AdminReservationsScreenState extends State<AdminReservationsScreen> {
               labelStyle: TextStyle(
                 color: isSelected ? Colors.white : AppColors.textPrimary,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 13,
               ),
             ),
           );
@@ -467,7 +478,7 @@ class _AdminReservationsScreenState extends State<AdminReservationsScreen> {
         vertical: 4,
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha((0.1 * 255).round()),
         borderRadius: BorderRadius.circular(AppBorderRadius.sm),
         border: Border.all(color: color),
       ),
