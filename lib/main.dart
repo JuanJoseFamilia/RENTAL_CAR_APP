@@ -180,7 +180,7 @@ class AuthWrapper extends StatefulWidget {
 class _AuthWrapperState extends State<AuthWrapper> {
   final _updateService = UpdateService(
     // IMPORTANTE: Reemplaza con tu usuario y repositorio de GitHub
-    githubRepo: 'tu_usuario/RENTAL_CAR_APP',
+    githubRepo: 'https://github.com/JuanJoseFamilia/RENTAL_CAR_APP.git',
     // githubToken: 'tu_token_github_opcional', // Opcional para más requests
   );
   bool _updateCheckDone = false;
