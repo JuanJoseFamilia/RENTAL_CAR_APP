@@ -58,6 +58,13 @@ FAQ.md
 IMPLEMENTACION_FINAL.md
 INDICE.md
 ARCHIVOS_GENERADOS.md
+GITIGNORE_EXPLICACION.md
+GIT_LISTO_PARA_PUSH.txt
+GIT_PUSH_AHORA.txt
+LÉAME.md
+firebase.json
+paquete-lock.json
+paquete.json
 
 # Node modules (Firebase functions)
 node_modules/
