@@ -10,6 +10,7 @@ class ConversationModel {
   final String? lastMessage;
   final String? welcomeMessage;
   final DateTime updatedAt;
+  final int unreadCount; // Cantidad de mensajes no leídos
 
   ConversationModel({
     required this.id,
@@ -20,6 +21,7 @@ class ConversationModel {
     this.lastMessage,
     this.welcomeMessage,
     required this.updatedAt,
+    this.unreadCount = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -31,6 +33,7 @@ class ConversationModel {
       'lastMessage': lastMessage,
       'welcomeMessage': welcomeMessage,
       'updatedAt': Timestamp.fromDate(updatedAt),
+      'unreadCount': unreadCount,
     };
   }
 
@@ -44,6 +47,7 @@ class ConversationModel {
       lastMessage: map['lastMessage'] as String?,
       welcomeMessage: map['welcomeMessage'] as String?,
       updatedAt: (map['updatedAt'] as Timestamp).toDate(),
+      unreadCount: map['unreadCount'] as int? ?? 0,
     );
   }
 }

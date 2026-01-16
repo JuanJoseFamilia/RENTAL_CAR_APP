@@ -32,15 +32,16 @@ class UpdateService {
 
       if (response.statusCode == 200) {
         final tagName = response.data['tag_name'] as String?;
+        developer.log('✓ Versión obtenida de GitHub: $tagName');
         return tagName?.replaceFirst('v', ''); // "v1.0.0" -> "1.0.0"
       }
     } catch (e) {
-      developer.log('Error obteniendo versión: $e');
+      developer.log('Error obteniendo versión de GitHub: $e');
     }
     return null;
   }
 
-  /// Obtiene la URL de descarga del APK más reciente
+  /// Obtiene la URL de descarga del APK más reciente de GitHub
   Future<String?> getDownloadUrl() async {
     try {
       final response = await dio.get(
@@ -59,11 +60,12 @@ class UpdateService {
             (asset) => (asset['name'] as String).endsWith('.apk'),
             orElse: () => null,
           );
+          developer.log('✓ URL de descarga obtenida de GitHub');
           return apk?['browser_download_url'] as String?;
         }
       }
     } catch (e) {
-      developer.log('Error obteniendo URL: $e');
+      developer.log('Error obteniendo URL de GitHub: $e');
     }
     return null;
   }

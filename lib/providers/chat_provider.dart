@@ -54,6 +54,17 @@ class ChatProvider with ChangeNotifier {
     );
   }
 
+  // Mark entire conversation as read
+  Future<void> markConversationAsRead({
+    required String conversationId,
+    required String userId,
+  }) async {
+    await _chatService.markConversationAsRead(
+      conversationId: conversationId,
+      userId: userId,
+    );
+  }
+
   // Stream de conversaciones del usuario
   Stream<List<ConversationModel>> streamUserConversations(String userId) {
     return _chatService.streamUserConversations(userId);

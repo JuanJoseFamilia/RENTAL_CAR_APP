@@ -38,7 +38,25 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    _markConversationAsRead();
     _initializeMessages();
+  }
+
+  // Mark entire conversation as read when opening
+  Future<void> _markConversationAsRead() async {
+    final chatProvider = context.read<ChatProvider>();
+    final authProvider = context.read<AuthProvider>();
+    final currentUserId = authProvider.currentUser?.id;
+    
+    if (currentUserId != null) {
+      final isAdmin = authProvider.currentUser?.rol == 'admin';
+      final userIdToMark = isAdmin ? 'admin' : currentUserId;
+      
+      await chatProvider.markConversationAsRead(
+        conversationId: widget.conversationId,
+        userId: userIdToMark,
+      );
+    }
   }
 
   Future<void> _initializeMessages() async {
@@ -288,6 +306,9 @@ class _ChatScreenState extends State<ChatScreen> {
                           }
 
                           // Show regular message
+                          final isRead = m.readBy.length > 1 || 
+                                       (m.readBy.length == 1 && !isMine && m.readBy.isNotEmpty);
+
                           return Align(
                             alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
                             child: Container(
@@ -298,7 +319,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 borderRadius: BorderRadius.circular(AppBorderRadius.md),
                               ),
                               child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                                crossAxisAlignment: isMine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                                 children: [
                                   Text(
                                     m.text,
@@ -308,6 +329,14 @@ class _ChatScreenState extends State<ChatScreen> {
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
+                                      if (isMine) ...[
+                                        Icon(
+                                          m.readBy.length > 1 ? Icons.done_all : Icons.done,
+                                          size: 14,
+                                          color: m.readBy.length > 1 ? Colors.blue : AppColors.white,
+                                        ),
+                                        const SizedBox(width: 4),
+                                      ],
                                       Text(
                                         _formatTime(m.createdAt),
                                         style: const TextStyle(
@@ -315,15 +344,19 @@ class _ChatScreenState extends State<ChatScreen> {
                                           color: AppColors.white,
                                         ),
                                       ),
-                                      const SizedBox(width: AppSpacing.xs),
-                                      if (isMine)
-                                        Icon(
-                                          m.readBy.length > 1 ? Icons.done_all : Icons.done,
-                                          size: 14,
-                                          color: AppColors.white,
-                                        ),
                                     ],
-                                  )
+                                  ),
+                                  if (isRead && !isMine)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4.0),
+                                      child: Text(
+                                        '✓ Leído',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: AppColors.white.withAlpha(180),
+                                        ),
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),

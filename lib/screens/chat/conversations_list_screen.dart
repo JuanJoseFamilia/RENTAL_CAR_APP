@@ -262,24 +262,40 @@ class _ConversationsListScreenState extends State<ConversationsListScreen>
     return StreamBuilder<int>(
       stream: context.read<ChatProvider>().streamUnreadCountForConversation(conv.id, userId),
       builder: (context, unreadSnap) {
-        final hasUnread = (unreadSnap.data ?? 0) > 0;
+        final unreadCount = unreadSnap.data ?? 0;
+        final hasUnread = unreadCount > 0;
 
         return Container(
           decoration: BoxDecoration(
             border: Border(left: BorderSide(color: borderColor, width: 4)),
+            color: hasUnread ? Colors.red.withAlpha(13) : null, // Very subtle red background
           ),
           child: ListTile(
             title: Row(
               children: [
-                Expanded(child: Text(userLabel ?? 'Desconocido')),
+                Expanded(
+                  child: Text(
+                    userLabel ?? 'Desconocido',
+                    style: TextStyle(
+                      fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
+                      color: hasUnread ? Colors.red : Colors.black,
+                    ),
+                  ),
+                ),
                 if (hasUnread)
                   Container(
-                    width: 10,
-                    height: 10,
-                    margin: const EdgeInsets.only(left: 8),
-                    decoration: const BoxDecoration(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
                       color: Colors.red,
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      unreadCount > 99 ? '99+' : '$unreadCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
               ],
@@ -310,7 +326,11 @@ class _ConversationsListScreenState extends State<ConversationsListScreen>
                         'Último: $lastMsg',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                          fontWeight: hasUnread ? FontWeight.w500 : FontWeight.normal,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),

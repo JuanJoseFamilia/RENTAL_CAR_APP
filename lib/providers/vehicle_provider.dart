@@ -1,10 +1,16 @@
 //lib/providers/vehicle_provider.dart
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../models/vehicle_model.dart';
 import '../services/vehicle_service.dart';
+import '../services/cache_service.dart';
 
 class VehicleProvider with ChangeNotifier {
   final VehicleService _vehicleService = VehicleService();
+  
+  // ✅ NUEVO: StreamSubscriptions para cancelarlas correctamente
+  StreamSubscription<List<VehicleModel>>? _availableVehiclesSub;
+  StreamSubscription<List<VehicleModel>>? _allVehiclesSub;
 
   List<VehicleModel> _vehicles = [];
   List<VehicleModel> _allVehicles = [];
@@ -20,7 +26,6 @@ class VehicleProvider with ChangeNotifier {
       _filteredVehicles.isEmpty && _searchQuery.isEmpty && _selectedType == null
           ? _vehicles
           : _filteredVehicles;
-  // Todos los vehículos
   List<VehicleModel> get allVehicles => _allVehicles;
   VehicleModel? get selectedVehicle => _selectedVehicle;
   bool get isLoading => _isLoading;
@@ -28,36 +33,55 @@ class VehicleProvider with ChangeNotifier {
   String get searchQuery => _searchQuery;
   String? get selectedType => _selectedType;
 
-  // Cargar todos los vehículos disponibles
+  // ✅ OPTIMIZADO: Cargar vehículos disponibles con caché
   void loadVehicles() {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
-    _vehicleService.getAvailableVehicles().listen(
+    // ✅ NUEVO: Cancelar suscripción previa si existe
+    _availableVehiclesSub?.cancel();
+
+    // ✅ NUEVO: Intentar usar caché primero
+    final cached = CacheService.getCachedVehicles();
+    if (cached != null && CacheService.isVehiclesCacheValid()) {
+      _vehicles = cached;
+      _isLoading = false;
+      _applyFilters();
+      notifyListeners();
+      print('[VehicleProvider] Usando caché de vehículos');
+    }
+
+    // Luego, obtener datos frescos de Firebase
+    _availableVehiclesSub = _vehicleService.getAvailableVehicles().listen(
       (vehiclesList) {
         _vehicles = vehiclesList;
         _isLoading = false;
         _errorMessage = null;
         _applyFilters();
+        
+        // Guardar en caché para próxima vez
+        CacheService.cacheVehicles(vehiclesList).catchError((_) {});
+        
         notifyListeners();
       },
       onError: (error) {
         _isLoading = false;
         _errorMessage = 'Error al cargar vehículos: $error';
-
         notifyListeners();
       },
     );
   }
 
-  // Cargar todos los vehículos
+  // ✅ OPTIMIZADO: Cargar todos los vehículos (admin)
   void loadAllVehicles() {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
-    _vehicleService.getAllVehicles().listen(
+    _allVehiclesSub?.cancel();
+
+    _allVehiclesSub = _vehicleService.getAllVehicles().listen(
       (vehiclesList) {
         _allVehicles = vehiclesList;
         _isLoading = false;
@@ -209,7 +233,6 @@ class VehicleProvider with ChangeNotifier {
             .sort((a, b) => a.nombreCompleto.compareTo(b.nombreCompleto));
         break;
       default:
-        // Por defecto, más recientes primero
         _filteredVehicles
             .sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
     }
@@ -249,7 +272,6 @@ class VehicleProvider with ChangeNotifier {
         _filteredVehicles[fIdx] =
             _filteredVehicles[fIdx].copyWith(disponible: !currentStatus);
       }
-      // Actualizar lista completa (admin)
       final aIdx = _allVehicles.indexWhere((v) => v.id == vehicleId);
       if (aIdx != -1) {
         _allVehicles[aIdx] =
@@ -264,5 +286,13 @@ class VehicleProvider with ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+  }
+
+  // ✅ NUEVO: Cancelar streams al destruir el provider
+  @override
+  void dispose() {
+    _availableVehiclesSub?.cancel();
+    _allVehiclesSub?.cancel();
+    super.dispose();
   }
 }

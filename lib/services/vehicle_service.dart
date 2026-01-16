@@ -2,31 +2,72 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/vehicle_model.dart';
 import '../utils/constants.dart';
+import 'cache_service.dart';
 
 class VehicleService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const int pageSize = 20; // Cantidad de vehículos por página
 
-  // Obtener todos los vehículos
+  // ✅ OPTIMIZADO: Obtener todos los vehículos con caché
   Stream<List<VehicleModel>> getAllVehicles() {
+    // Primero, retornar caché si disponible
+    final cached = CacheService.getCachedVehicles();
+    if (cached != null && CacheService.isVehiclesCacheValid()) {
+      return Stream.value(cached).asBroadcastStream();
+    }
+
     return _firestore
         .collection(FirebaseCollections.vehicles)
         .orderBy('fechaCreacion', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      final vehicles = snapshot.docs
+          .map((doc) => VehicleModel.fromMap(doc.data(), doc.id))
+          .toList();
+      
+      // Guardar en caché después de obtener
+      CacheService.cacheVehicles(vehicles).catchError((_) {});
+      
+      return vehicles;
+    });
+  }
+
+  // ✅ OPTIMIZADO: Obtener solo vehículos disponibles (con límite)
+  Stream<List<VehicleModel>> getAvailableVehicles() {
+    return _firestore
+        .collection(FirebaseCollections.vehicles)
+        .where('disponible', isEqualTo: true)
+        .orderBy('fechaCreacion', descending: true)
+        .limit(pageSize) // ✅ LÍMITE: evita descargar todos
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => VehicleModel.fromMap(doc.data(), doc.id))
             .toList());
   }
 
-  // Obtener solo vehículos disponibles
-  Stream<List<VehicleModel>> getAvailableVehicles() {
-    return _firestore
-        .collection(FirebaseCollections.vehicles)
-        .where('disponible', isEqualTo: true)
-        .orderBy('fechaCreacion', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => VehicleModel.fromMap(doc.data(), doc.id))
-            .toList());
+  // ✅ NUEVO: Obtener página siguiente de vehículos disponibles
+  Future<List<VehicleModel>> getAvailableVehiclesPage(
+    int pageNumber, {
+    DocumentSnapshot? startAfter,
+  }) async {
+    try {
+      Query query = _firestore
+          .collection(FirebaseCollections.vehicles)
+          .where('disponible', isEqualTo: true)
+          .orderBy('fechaCreacion', descending: true);
+
+      if (startAfter != null) {
+        query = query.startAfterDocument(startAfter);
+      }
+
+      final snapshot = await query.limit(pageSize).get();
+
+      return snapshot.docs
+          .map((doc) => VehicleModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .toList();
+    } catch (e) {
+      throw 'Error al obtener página de vehículos: $e';
+    }
   }
 
   // Obtener un vehículo por ID
@@ -45,13 +86,14 @@ class VehicleService {
     }
   }
 
-  // Buscar vehículos por texto (marca o modelo)
+  // ✅ OPTIMIZADO: Buscar vehículos con texto (ahora filtra en Firestore si es posible)
   Future<List<VehicleModel>> searchVehicles(String query) async {
     try {
       if (query.isEmpty) {
         final snapshot = await _firestore
             .collection(FirebaseCollections.vehicles)
             .where('disponible', isEqualTo: true)
+            .limit(pageSize)
             .get();
 
         return snapshot.docs
@@ -61,10 +103,12 @@ class VehicleService {
 
       final queryLower = query.toLowerCase();
 
-      // Obtener todos los vehículos y filtrar en el cliente
+      // ✅ MEJORA: Obtener con límite y filtrar en cliente
+      // (Firestore no soporta búsqueda por texto completo directamente)
       final snapshot = await _firestore
           .collection(FirebaseCollections.vehicles)
           .where('disponible', isEqualTo: true)
+          .limit(pageSize * 3) // Obtener más para mejorar resultados de búsqueda
           .get();
 
       return snapshot.docs
@@ -72,6 +116,8 @@ class VehicleService {
           .where((vehicle) =>
               vehicle.marca.toLowerCase().contains(queryLower) ||
               vehicle.modelo.toLowerCase().contains(queryLower))
+          .toList()
+          .take(pageSize) // Limitar resultados finales
           .toList();
     } catch (e) {
       throw 'Error al buscar vehículos: $e';

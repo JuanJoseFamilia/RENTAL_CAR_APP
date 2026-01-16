@@ -70,7 +70,7 @@ class ReservationProvider with ChangeNotifier {
     );
   }
 
-  // Cargar reservas de un vehículo (para admin)
+  // ✅ OPTIMIZADO: Cargar reservas de un vehículo (para admin) con cancelación
   void loadReservationsForVehicle(String vehicleId) {
     // Cancelar suscripción previa si existe
     _vehicleReservationsSub?.cancel();
@@ -89,13 +89,14 @@ class ReservationProvider with ChangeNotifier {
             return;
           }
 
-          // Enriquecer con nombre de usuario
+          // ✅ OPTIMIZADO: Usar Future.wait con timeout para evitar bloqueos
           final futures = filtered.map((r) async {
             final name = await _reservationService.getUserName(r.userId);
             return r.copyWith(userName: name);
           }).toList();
 
-          _vehicleReservations = await Future.wait(futures);
+          _vehicleReservations = await Future.wait(futures)
+              .timeout(const Duration(seconds: 10), onTimeout: () => filtered);
 
           notifyListeners();
         } catch (e) {
@@ -110,7 +111,7 @@ class ReservationProvider with ChangeNotifier {
     );
   }
 
-  // Cargar solo reservas activas de un vehículo (pendiente/confirmada)
+  // ✅ OPTIMIZADO: Cargar solo reservas activas con timeout
   void loadActiveReservationsForVehicle(String vehicleId) {
     _activeVehicleReservationsSub?.cancel();
 
@@ -135,7 +136,9 @@ class ReservationProvider with ChangeNotifier {
             return r.copyWith(userName: name);
           }).toList();
 
-          _activeVehicleReservations = await Future.wait(futures);
+          // ✅ NUEVO: Agregar timeout para evitar esperas infinitas
+          _activeVehicleReservations = await Future.wait(futures)
+              .timeout(const Duration(seconds: 10), onTimeout: () => filtered);
 
           // Recalcular días bloqueados
           _computeBlockedDays();

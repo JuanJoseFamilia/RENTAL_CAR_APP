@@ -1,5 +1,6 @@
 // lib/services/chat_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/conversation_model.dart';
 import '../models/message_model.dart';
 
@@ -30,6 +31,7 @@ class ChatService {
         'lastMessage': welcomeMessage,
         'welcomeMessage': welcomeMessage,
         'updatedAt': FieldValue.serverTimestamp(),
+        'unreadCount': 0,
       });
 
       return docRef.id;
@@ -98,6 +100,37 @@ class ChatService {
     await msgRef.update({
       'readBy': FieldValue.arrayUnion([userId]),
     });
+  }
+
+  // Mark all messages in a conversation as read
+  Future<void> markConversationAsRead({
+    required String conversationId,
+    required String userId,
+  }) async {
+    try {
+      final messageSnap = await _firestore
+          .collection(_conversationsColl)
+          .doc(conversationId)
+          .collection('messages')
+          .get();
+
+      for (var msgDoc in messageSnap.docs) {
+        final readBy = List<String>.from(msgDoc.get('readBy') ?? []);
+        if (!readBy.contains(userId)) {
+          await msgDoc.reference.update({
+            'readBy': FieldValue.arrayUnion([userId]),
+          });
+        }
+      }
+
+      // Reset unreadCount to 0
+      await _firestore
+          .collection(_conversationsColl)
+          .doc(conversationId)
+          .update({'unreadCount': 0});
+    } catch (e) {
+      if (kDebugMode) print('Error al marcar como leído: $e');
+    }
   }
 
   Stream<List<ConversationModel>> streamUserConversations(String userId) {

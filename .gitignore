@@ -44,6 +44,7 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 # Documentación local de desarrollo (no necesaria en repo)
+/DOCUMENTACION/
 LEE_PRIMERO.txt
 COMIENZA_AQUI.txt
 RESUMEN_FINAL.txt

@@ -25,8 +25,9 @@ import 'models/reservation_model.dart';
 // Utils
 import 'utils/constants.dart';
 
-// Update Service
+// Services
 import 'services/update_service.dart';
+import 'services/service_locator.dart';
 import 'widgets/update_dialog.dart';
 
 void main() async {
@@ -37,8 +38,14 @@ void main() async {
   );
 
   // Inicializar formateo de fechas para español
-
   await initializeDateFormatting('es_ES', null);
+
+  // ✅ NUEVO: Inicializar ServiceLocator y caché
+  try {
+    await ServiceLocator.initialize();
+  } catch (e) {
+    print('Error inicializando ServiceLocator: $e');
+  }
 
   runApp(const MyApp());
 }
