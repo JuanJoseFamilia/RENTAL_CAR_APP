@@ -115,8 +115,8 @@ class UpdateService {
     required Function(int received, int total) onProgress,
   }) async {
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final downloadDir = Directory('${appDir.path}/downloads');
+      final cacheDir = await getTemporaryDirectory();
+      final downloadDir = Directory('${cacheDir.path}/updates');
       
       if (!await downloadDir.exists()) {
         await downloadDir.create(recursive: true);
