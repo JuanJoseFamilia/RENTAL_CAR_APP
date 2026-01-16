@@ -12,6 +12,8 @@ class AppColors {
   static const Color textSecondary = Color(0xFF757575);
   static const Color white = Color(0xFFFFFFFF);
   static const Color grey = Color(0xFFE0E0E0);
+  // Color para mensajes entrantes (chat)
+  static const Color chatIncoming = Color(0xFF616161);
 }
 
 // Textos y Strings

@@ -11,17 +11,23 @@ import 'providers/vehicle_provider.dart';
 import 'providers/reservation_provider.dart';
 import 'providers/review_provider.dart';
 import 'providers/admin_reservation_provider.dart';
+import 'providers/chat_provider.dart';
 
 // Screens
 import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/review/add_review_screen.dart';
+import 'screens/chat/chat_screen.dart';
 
 // Models
 import 'models/reservation_model.dart';
 
 // Utils
 import 'utils/constants.dart';
+
+// Update Service
+import 'services/update_service.dart';
+import 'widgets/update_dialog.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +55,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ReservationProvider()),
         ChangeNotifierProvider(create: (_) => ReviewProvider()),
         ChangeNotifierProvider(create: (_) => AdminReservationProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
       ],
       child: MaterialApp(
         title: AppStrings.appName,
@@ -70,6 +77,18 @@ class MyApp extends StatelessWidget {
               fontSize: AppFontSizes.lg,
               fontWeight: FontWeight.bold,
               color: AppColors.white,
+            ),
+          ),
+          tabBarTheme: const TabBarThemeData(
+            labelColor: AppColors.white,
+            unselectedLabelColor: Colors.white70,
+            labelStyle: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: AppColors.white,
+            ),
+            unselectedLabelStyle: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Colors.white70,
             ),
           ),
           cardTheme: CardThemeData(
@@ -133,6 +152,16 @@ class MyApp extends StatelessWidget {
               builder: (_) => AddReviewScreen(reservation: reservation),
             );
           }
+
+          if (settings.name == '/chat') {
+            final args = settings.arguments as Map<String, dynamic>;
+            final conversationId = args['conversationId'] as String;
+            final reservationId = args['reservationId'] as String?;
+            return MaterialPageRoute(
+              builder: (_) => ChatScreen(conversationId: conversationId, reservationId: reservationId),
+            );
+          }
+
           return null;
         },
         home: const AuthWrapper(),
@@ -141,11 +170,82 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
   @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  final _updateService = UpdateService(
+    // IMPORTANTE: Reemplaza con tu usuario y repositorio de GitHub
+    githubRepo: 'tu_usuario/RENTAL_CAR_APP',
+    // githubToken: 'tu_token_github_opcional', // Opcional para más requests
+  );
+  bool _updateCheckDone = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkForUpdates();
+  }
+
+  Future<void> _checkForUpdates() async {
+    try {
+      final currentVersion = await _updateService.getCurrentVersion();
+      final latestVersion = await _updateService.getLatestVersion();
+
+      if (!mounted) return;
+
+      // Si no hay versión más reciente, continuar
+      if (latestVersion == null ||
+          !_updateService.hasUpdate(currentVersion, latestVersion)) {
+        setState(() {
+          _updateCheckDone = true;
+        });
+        return;
+      }
+
+      // Obtener URL de descarga
+      final downloadUrl = await _updateService.getDownloadUrl();
+
+      if (!mounted) return;
+
+      if (downloadUrl != null) {
+        // Mostrar diálogo de actualización
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => UpdateDialog(
+            updateService: _updateService,
+            downloadUrl: downloadUrl,
+            isForced: true, // Cambiar a false si quieres permitir cerrar
+          ),
+        );
+      }
+
+      setState(() {
+        _updateCheckDone = true;
+      });
+    } catch (e) {
+      // Log silencioso, no interrumpe la app
+      setState(() {
+        _updateCheckDone = true;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (!_updateCheckDone) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Consumer<AuthProvider>(
       builder: (context, authProvider, _) {
         // Escuchar cambios en el estado de autenticación

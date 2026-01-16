@@ -1,0 +1,301 @@
+// lib/services/chat_service.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/conversation_model.dart';
+import '../models/message_model.dart';
+
+class ChatService {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String _conversationsColl = 'conversations';
+
+  Future<String> ensureConversation({
+    required String reservationId,
+    required String vehicleId,
+    required String userId,
+    String? welcomeMessage,
+  }) async {
+    try {
+      final q = await _firestore
+          .collection(_conversationsColl)
+          .where('reservationId', isEqualTo: reservationId)
+          .limit(1)
+          .get();
+
+      if (q.docs.isNotEmpty) return q.docs.first.id;
+
+      final docRef = await _firestore.collection(_conversationsColl).add({
+        'reservationId': reservationId,
+        'vehicleId': vehicleId,
+        'userId': userId,
+        'adminId': null,
+        'lastMessage': welcomeMessage,
+        'welcomeMessage': welcomeMessage,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      return docRef.id;
+    } on FirebaseException catch (e) {
+      throw Exception('No tiene permiso para acceder o crear la conversación: ${e.message}');
+    }
+  }
+
+  Stream<List<MessageModel>> streamMessages(String conversationId) {
+    return _firestore
+        .collection(_conversationsColl)
+        .doc(conversationId)
+        .collection('messages')
+        .orderBy('createdAt', descending: false)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => MessageModel.fromMap(d.data(), d.id))
+            .toList());
+  }
+
+  Future<void> sendMessage({
+    required String conversationId,
+    required String senderId,
+    required String senderRole,
+    required String text,
+    String? attachmentUrl,
+  }) async {
+    final messagesRef = _firestore
+        .collection(_conversationsColl)
+        .doc(conversationId)
+        .collection('messages');
+
+    final messageData = {
+      'senderId': senderId,
+      'senderRole': senderRole,
+      'text': text,
+      'createdAt': FieldValue.serverTimestamp(),
+      'attachmentUrl': attachmentUrl,
+      'readBy': [senderId], // sender has seen their message
+    };
+
+    try {
+      await messagesRef.add(messageData);
+
+      // Update conversation metadata
+      await _firestore.collection(_conversationsColl).doc(conversationId).update({
+        'lastMessage': text,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } on FirebaseException catch (e) {
+      throw Exception('No tiene permiso para enviar mensajes o hubo un error: ${e.message}');
+    }
+  }
+
+  Future<void> markMessageRead({
+    required String conversationId,
+    required String messageId,
+    required String userId,
+  }) async {
+    final msgRef = _firestore
+        .collection(_conversationsColl)
+        .doc(conversationId)
+        .collection('messages')
+        .doc(messageId);
+
+    await msgRef.update({
+      'readBy': FieldValue.arrayUnion([userId]),
+    });
+  }
+
+  Stream<List<ConversationModel>> streamUserConversations(String userId) {
+    return _firestore
+        .collection(_conversationsColl)
+        .where('userId', isEqualTo: userId)
+        .orderBy('updatedAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => ConversationModel.fromMap(d.data(), d.id))
+            .toList());
+  }
+
+  // Stream all conversations (for admin view)
+  Stream<List<ConversationModel>> streamAllConversations() {
+    return _firestore
+        .collection(_conversationsColl)
+        .orderBy('updatedAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => ConversationModel.fromMap(d.data(), d.id))
+            .toList());
+  }
+
+  Future<ConversationModel?> getConversationById(String id) async {
+    final doc = await _firestore.collection(_conversationsColl).doc(id).get();
+    if (!doc.exists) return null;
+    return ConversationModel.fromMap(doc.data()!, doc.id);
+  }
+
+  // Get count of unread messages in a specific conversation
+  Future<int> getUnreadCountForConversation(String conversationId, String userId) async {
+    try {
+      final messageSnap = await _firestore
+          .collection(_conversationsColl)
+          .doc(conversationId)
+          .collection('messages')
+          .get();
+
+      int unreadCount = 0;
+      for (var msgDoc in messageSnap.docs) {
+        final readBy = List<String>.from(msgDoc.get('readBy') ?? []);
+        if (!readBy.contains(userId)) {
+          unreadCount++;
+        }
+      }
+      return unreadCount;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  // Stream count of unread messages for a specific conversation
+  Stream<int> streamUnreadCountForConversation(String conversationId, String userId) {
+    return _firestore
+        .collection(_conversationsColl)
+        .doc(conversationId)
+        .collection('messages')
+        .snapshots()
+        .map((messageSnap) {
+          int unreadCount = 0;
+          for (var msgDoc in messageSnap.docs) {
+            final readBy = List<String>.from(msgDoc.get('readBy') ?? []);
+            if (!readBy.contains(userId)) {
+              unreadCount++;
+            }
+          }
+          return unreadCount;
+        });
+  }
+
+  // Stream count of unread messages across all user conversations
+  Stream<int> streamUnreadMessageCount(String userId) {
+    return _firestore
+        .collection(_conversationsColl)
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .asyncMap((conversationSnap) async {
+          int totalUnread = 0;
+          
+          for (var convDoc in conversationSnap.docs) {
+            final messageSnap = await _firestore
+                .collection(_conversationsColl)
+                .doc(convDoc.id)
+                .collection('messages')
+                .get();
+            
+            for (var msgDoc in messageSnap.docs) {
+              final readBy = List<String>.from(msgDoc.get('readBy') ?? []);
+              if (!readBy.contains(userId)) {
+                totalUnread++;
+              }
+            }
+          }
+          
+          return totalUnread;
+        });
+  }
+
+  // Stream count of unread messages across all conversations for admin
+  Stream<int> streamUnreadMessageCountForAdmin() {
+    return _firestore
+        .collection(_conversationsColl)
+        .snapshots()
+        .asyncMap((conversationSnap) async {
+          int totalUnread = 0;
+          
+          for (var convDoc in conversationSnap.docs) {
+            final messageSnap = await _firestore
+                .collection(_conversationsColl)
+                .doc(convDoc.id)
+                .collection('messages')
+                .get();
+            
+            for (var msgDoc in messageSnap.docs) {
+              final readBy = List<String>.from(msgDoc.get('readBy') ?? []);
+              final senderId = msgDoc.get('senderId') ?? '';
+              // Count messages that are NOT from admin and admin hasn't read
+              // This prevents counting admin's own messages
+              if (senderId != 'admin' && !readBy.contains('admin')) {
+                totalUnread++;
+              }
+            }
+          }
+          
+          return totalUnread;
+        });
+  }
+
+  // Generate a detailed reservation voucher message
+  String generateReservationVoucher({
+    required String reservationId,
+    required String clientName,
+    required String vehicleName,
+    required DateTime startDate,
+    required DateTime endDate,
+    required int days,
+    required double totalPrice,
+    required String status,
+  }) {
+    // Format dates
+    final startDateStr = _formatDate(startDate);
+    final endDateStr = _formatDate(endDate);
+    final startTime = _formatTime(startDate);
+    final endTime = _formatTime(endDate);
+
+    // Format price with currency
+    final priceStr = totalPrice.toStringAsFixed(2);
+
+    // Format status
+    final statusFormatted = status.isEmpty ? 'Pendiente' : status[0].toUpperCase() + status.substring(1);
+
+    return '''
+════════════════════════════════════════════
+         DETALLES DE TU RESERVA
+════════════════════════════════════════════
+
+👤 CLIENTE: $clientName
+📋 ID RESERVA: $reservationId
+
+🚗 VEHÍCULO: $vehicleName
+
+📅 FECHA DE INICIO: $startDateStr
+   ⏰ Hora: $startTime
+
+📅 FECHA DE FIN: $endDateStr
+   ⏰ Hora: $endTime
+
+⏱️  DURACIÓN: $days día(s)
+
+💰 PRECIO TOTAL: \$$priceStr
+
+📊 ESTADO: $statusFormatted
+
+════════════════════════════════════════════
+
+Hola $clientName! 👋
+
+Gracias por tu confianza. Esta es la información de tu reserva. Si tienes alguna pregunta sobre el vehículo, las condiciones de alquiler, o cualquier otro detalle, responde aquí y te ayudaré con gusto.
+
+¡Estamos aquí para asegurarnos de que tengas la mejor experiencia!
+
+════════════════════════════════════════════''';
+  }
+
+  // Helper method to format date
+  String _formatDate(DateTime date) {
+    final months = [
+      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+    ];
+    return '${date.day} de ${months[date.month - 1]} de ${date.year}';
+  }
+
+  // Helper method to format time
+  String _formatTime(DateTime dateTime) {
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+}

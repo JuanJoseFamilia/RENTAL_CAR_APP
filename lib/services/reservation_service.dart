@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/reservation_model.dart';
 import '../models/vehicle_model.dart';
 import '../utils/constants.dart';
 import '../utils/date_utils.dart';
+import 'chat_service.dart';
 
 class ReservationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -91,7 +93,58 @@ class ReservationService {
           .collection(FirebaseCollections.reservations)
           .add(reservation.toMap());
 
-      return docRef.id;
+      final reservationId = docRef.id;
+
+      // Crear conversación inicial con mensaje de bienvenida del administrador
+      try {
+        final convId = await ChatService().ensureConversation(
+          reservationId: reservationId,
+          vehicleId: vehicleId,
+          userId: userId,
+          welcomeMessage: 'Reserva creada',
+        );
+
+        // Pequeño delay para asegurar que Firestore sincronice si la conversación fue creada por Cloud Function
+        await Future.delayed(const Duration(milliseconds: 500));
+
+        // Cargar datos completos de la reservación
+        final completeReservation = await getReservationWithFullData(reservationId);
+        
+        if (completeReservation != null) {
+          // Construir nombre completo del vehículo
+          final vehicleName = <String>[
+            if (completeReservation.vehicleMarca != null && completeReservation.vehicleMarca!.isNotEmpty) completeReservation.vehicleMarca!,
+            if (completeReservation.vehicleModelo != null && completeReservation.vehicleModelo!.isNotEmpty) completeReservation.vehicleModelo!,
+          ].join(' ');
+
+          // Generar el voucher detallado
+          final voucherText = ChatService().generateReservationVoucher(
+            reservationId: reservationId,
+            clientName: completeReservation.userName ?? userId,
+            vehicleName: vehicleName.isNotEmpty ? vehicleName : 'Vehículo confirmado',
+            startDate: completeReservation.fechaInicio,
+            endDate: completeReservation.fechaFin,
+            days: completeReservation.diasAlquiler,
+            totalPrice: completeReservation.precioTotal,
+            status: completeReservation.estado,
+          );
+
+          // Enviar el voucher detallado como mensaje de admin
+          // Esto se ejecutará incluso si la Cloud Function ya creó la conversación
+          await ChatService().sendMessage(
+            conversationId: convId,
+            senderId: 'admin',
+            senderRole: 'admin',
+            text: voucherText,
+          );
+        }
+      } catch (e) {
+        // No bloqueamos el flujo principal si la creación de la conversación falla,
+        // pero registramos el error para diagnóstico.
+        debugPrint('Error creando conversación inicial: $e');
+      }
+
+      return reservationId;
     } catch (e) {
       throw 'Error al crear reserva: $e';
     }

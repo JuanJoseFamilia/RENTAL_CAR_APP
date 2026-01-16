@@ -43,3 +43,32 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+# Documentación local de desarrollo (no necesaria en repo)
+LEE_PRIMERO.txt
+COMIENZA_AQUI.txt
+RESUMEN_FINAL.txt
+GUIA_PASO_A_PASO.md
+QUICK_REFERENCE.txt
+ACTUALIZACION_RAPIDA.txt
+GUIA_COMPLETA_ACTUALIZACIONES.md
+UPDATE_SYSTEM_README.md
+VARIABLES_CONFIG.md
+FAQ.md
+IMPLEMENTACION_FINAL.md
+INDICE.md
+ARCHIVOS_GENERADOS.md
+
+# Node modules (Firebase functions)
+node_modules/
+package-lock.json
+
+# Firebase emulator
+.runtimeconfig.json
+
+# Environment variables
+.env
+.env.local
+
+# Screenshots y archivos temporales
+*.png
+flutter_01.png

@@ -7,6 +7,8 @@ import '../../utils/date_utils.dart';
 import '../../widgets/loanding_widget.dart';
 import '../../widgets/custom_buttom.dart';
 import '../review/add_review_screen.dart';
+import '../../providers/chat_provider.dart';
+import '../../providers/auth_provider.dart';
 
 class ReservationDetailScreen extends StatefulWidget {
   final String reservationId;
@@ -215,6 +217,53 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
                         ),
                         const SizedBox(height: AppSpacing.md),
                       ],
+
+                      // Chat con admin
+                      CustomButton(
+                        text: 'Chat con admin',
+                        onPressed: () async {
+                          final authProvider = context.read<AuthProvider>();
+                          if (authProvider.currentUser == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Debes iniciar sesión'),
+                                backgroundColor: AppColors.error,
+                              ),
+                            );
+                            return;
+                          }
+
+                          final chatProvider = context.read<ChatProvider>();
+                          final navigator = Navigator.of(context);
+                          final messenger = ScaffoldMessenger.of(context);
+
+                          try {
+                            final convId = await chatProvider.ensureConversation(
+                              reservationId: reservation.id,
+                              vehicleId: reservation.vehicleId,
+                              userId: authProvider.currentUser!.id,
+                            );
+
+                            if (!mounted) return;
+
+                            navigator.pushNamed(
+                              '/chat',
+                              arguments: {'conversationId': convId},
+                            );
+                          } catch (e) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(e.toString()),
+                                backgroundColor: AppColors.error,
+                              ),
+                            );
+                          }
+                        },
+                        backgroundColor: AppColors.primary,
+                        icon: Icons.chat,
+                      ),
+
+                      const SizedBox(height: AppSpacing.md),
 
                       // Volver
                       CustomButton(

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/vehicle_provider.dart';
 import '../../providers/reservation_provider.dart';
+import '../../providers/chat_provider.dart';
 import '../../utils/constants.dart';
 import '../../widgets/vehicle_card.dart';
 import '../../widgets/loanding_widget.dart';
@@ -10,6 +11,7 @@ import '../vehicle/vehicle_detail_screen.dart';
 import '../reservation/my_reservations_screen.dart';
 import '../profile/profile_screen.dart';
 import '../admin/admin_screen.dart';
+import '../chat/conversations_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -56,47 +58,15 @@ class _HomeScreenState extends State<HomeScreen> {
         ? [
             _buildVehiclesScreen(),
             const MyReservationsScreen(),
+            const ConversationsListScreen(),
             const AdminScreen(),
             const ProfileScreen(),
           ]
         : [
             _buildVehiclesScreen(),
             const MyReservationsScreen(),
+            const ConversationsListScreen(),
             const ProfileScreen(),
-          ];
-
-    final List<BottomNavigationBarItem> navItems = isAdmin
-        ? const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Inicio',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today),
-              label: 'Reservas',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.admin_panel_settings),
-              label: 'Admin',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: 'Perfil',
-            ),
-          ]
-        : const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Inicio',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today),
-              label: 'Reservas',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: 'Perfil',
-            ),
           ];
 
     return Scaffold(
@@ -112,14 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
             )
           : null,
       body: screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onNavItemTapped,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textSecondary,
-        type: BottomNavigationBarType.fixed,
-        items: navItems,
-      ),
+      bottomNavigationBar: _buildBottomNavBar(authProvider, isAdmin),
     );
   }
 
@@ -381,6 +344,89 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       backgroundColor: AppColors.white,
       side: const BorderSide(color: AppColors.grey),
+    );
+  }
+
+  Widget _buildBottomNavBar(AuthProvider authProvider, bool isAdmin) {
+    final userId = authProvider.currentUser?.id;
+    final chatProvider = context.read<ChatProvider>();
+
+    return StreamBuilder<int>(
+      stream: isAdmin 
+          ? chatProvider.streamUnreadMessageCountForAdmin()
+          : (userId != null ? chatProvider.streamUnreadMessageCount(userId) : Stream.value(0)),
+      builder: (context, snapshot) {
+        final unreadCount = snapshot.data ?? 0;
+
+        final List<BottomNavigationBarItem> navItems = isAdmin
+            ? [
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.home),
+                  label: 'Inicio',
+                ),
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.calendar_today),
+                  label: 'Reservas',
+                ),
+                _buildMessagesNavItem(unreadCount),
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.admin_panel_settings),
+                  label: 'Admin',
+                ),
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.person),
+                  label: 'Perfil',
+                ),
+              ]
+            : [
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.home),
+                  label: 'Inicio',
+                ),
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.calendar_today),
+                  label: 'Reservas',
+                ),
+                _buildMessagesNavItem(unreadCount),
+                const BottomNavigationBarItem(
+                  icon: Icon(Icons.person),
+                  label: 'Perfil',
+                ),
+              ];
+
+        return BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: _onNavItemTapped,
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: AppColors.textSecondary,
+          type: BottomNavigationBarType.fixed,
+          items: navItems,
+        );
+      },
+    );
+  }
+
+  BottomNavigationBarItem _buildMessagesNavItem(int unreadCount) {
+    return BottomNavigationBarItem(
+      icon: Stack(
+        children: [
+          const Icon(Icons.chat),
+          if (unreadCount > 0)
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: AppColors.error,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+        ],
+      ),
+      label: 'Mensajes',
     );
   }
 }

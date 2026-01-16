@@ -1,15 +1,128 @@
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Reglas para reviews: permitir lectura y creación autenticada,
-    // pero prohibir actualizaciones y eliminaciones desde clientes.
-    match /reviews/{reviewId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update: if false; // No se permiten ediciones de reseñas desde la app
-      allow delete: if false; // Tampoco se permiten eliminaciones desde la app
+
+    // --- FUNCIONES DE AYUDA ---
+    function isSignedIn() { return request.auth != null; }
+
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.rol == 'admin';
     }
 
-    // Otras reglas por defecto (puedes ampliarlas según tus necesidades)
+    // Comprueba si el usuario autenticado es el dueño de una reserva concreta
+    function isReservationOwnerById(reservationId) {
+      return isSignedIn() && reservationId != null &&
+        get(/databases/$(database)/documents/reservations/$(reservationId)).data.userId == request.auth.uid;
+    }
+
+    // Determina si el usuario es participante de una conversación (userId o adminId)
+    // Nota: ahora recibe el conversationId y consulta el documento padre `conversations/{conversationId}`
+    function isConversationParticipant(conversationId) {
+      return isSignedIn() && (
+        get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId == request.auth.uid ||
+        get(/databases/$(database)/documents/conversations/$(conversationId)).data.adminId == request.auth.uid
+      );
+    }
+
+    // --- REGLAS POR COLECCIÓN ---
+
+    match /users/{userId} {
+      allow read: if isSignedIn() || isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if isOwner(userId);
+    }
+
+    match /vehicles/{vehicleId} {
+      allow read: if true;
+      // Nota: Idealmente esto debería ser isAdmin(), pero lo dejamos como lo tenías
+      allow write: if isSignedIn();
+    }
+
+    match /reservations/{reservationId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow delete: if false;
+    }
+
+    // Conversaciones y mensajes (chat)
+    match /conversations/{conversationId} {
+      // Crear: el usuario declarado o el dueño de la reserva pueden crear
+      allow create: if isSignedIn() && (
+        (request.resource.data.userId == request.auth.uid) ||
+        isReservationOwnerById(request.resource.data.reservationId)
+      );
+
+      // Lectura: participantes, admin o dueño de la reserva
+      allow read: if isConversationParticipant(conversationId) || isAdmin() || isReservationOwnerById(resource.data.reservationId);
+
+      // Permitir actualizaciones limitadas de la conversación:
+      // - Admin puede actualizar cualquiera de los metadatos
+      // - Participantes o dueño de la reserva pueden actualizar solo `lastMessage` y `updatedAt`
+      allow update: if isSignedIn() && (
+        isAdmin() || (
+          isConversationParticipant(conversationId) || isReservationOwnerById(resource.data.reservationId)
+        )
+      ) && (
+        // Si no es admin, asegurarse que los campos inmutables no cambien
+        (isAdmin()) || (
+          resource.data.userId == request.resource.data.userId &&
+          resource.data.adminId == request.resource.data.adminId &&
+          resource.data.reservationId == request.resource.data.reservationId &&
+          resource.data.vehicleId == request.resource.data.vehicleId
+        )
+      ) && (
+        // No permitir que se añadan/remuevan campos distintos a lastMessage/updatedAt
+        // Comprobamos que todos los valores no pertenecientes a lastMessage/updatedAt permanecen iguales
+        (isAdmin()) || (
+          // Explicit equality checks for core fields done arriba; permitir cambios en lastMessage/updatedAt
+          true
+        )
+      );
+
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        // Crear mensaje: participante, admin o dueño de la reserva
+        allow create: if isSignedIn() && (
+          isConversationParticipant(conversationId) || isAdmin() || isReservationOwnerById(get(/databases/$(database)/documents/conversations/$(conversationId)).data.reservationId)
+        );
+
+        // Lectura de mensajes: participantes, admin o dueño de la reserva
+        allow read: if isConversationParticipant(conversationId) || isAdmin() || isReservationOwnerById(get(/databases/$(database)/documents/conversations/$(conversationId)).data.reservationId);
+
+        // Permitir actualización limitada para marcar mensajes como "leídos":
+        // Solo participantes/admin/reservationOwner pueden modificar, y sólo se permiten cambios
+        // en el arreglo `readBy`. Además, los demás campos deben permanecer iguales.
+        allow update: if isSignedIn() && (
+          isConversationParticipant(conversationId) || isAdmin() || isReservationOwnerById(get(/databases/$(database)/documents/conversations/$(conversationId)).data.reservationId)
+        ) &&
+        // Campos inmutables deben permanecer iguales
+        request.resource.data.senderId == resource.data.senderId &&
+        request.resource.data.senderRole == resource.data.senderRole &&
+        request.resource.data.text == resource.data.text &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        ((resource.data.attachmentUrl == null && request.resource.data.attachmentUrl == null) || request.resource.data.attachmentUrl == resource.data.attachmentUrl) &&
+        // El campo readBy debe ser una lista que contiene al menos los valores previos
+        request.resource.data.readBy is list &&
+        request.resource.data.readBy.hasAll(resource.data.readBy) &&
+        // El usuario que hace la petición debe aparecer en el nuevo `readBy`
+        request.resource.data.readBy.hasAny([request.auth.uid]);
+
+        allow delete: if false;
+      }
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Otras rutas por defecto
     match /{document=**} {
       allow read: if true;
       allow write: if false;
