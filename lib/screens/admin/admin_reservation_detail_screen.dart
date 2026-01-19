@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../providers/admin_reservation_provider.dart';
 import '../../models/reservation_model.dart';
 import '../../utils/constants.dart';
@@ -168,7 +169,7 @@ class _AdminReservationDetailScreenState
       width: double.infinity,
       decoration: BoxDecoration(
         image: DecorationImage(
-          image: NetworkImage(_reservation!.vehicleImagenUrl!),
+          image: CachedNetworkImageProvider(_reservation!.vehicleImagenUrl!),
           fit: BoxFit.cover,
         ),
       ),

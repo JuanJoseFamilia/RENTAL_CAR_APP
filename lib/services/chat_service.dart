@@ -59,22 +59,24 @@ class ChatService {
     required String text,
     String? attachmentUrl,
   }) async {
-    final messagesRef = _firestore
-        .collection(_conversationsColl)
-        .doc(conversationId)
-        .collection('messages');
-
-    final messageData = {
-      'senderId': senderId,
-      'senderRole': senderRole,
-      'text': text,
-      'createdAt': FieldValue.serverTimestamp(),
-      'attachmentUrl': attachmentUrl,
-      'readBy': [senderId], // sender has seen their message
-    };
-
     try {
-      await messagesRef.add(messageData);
+      final messagesRef = _firestore
+          .collection(_conversationsColl)
+          .doc(conversationId)
+          .collection('messages');
+
+      final messageData = {
+        'senderId': senderId,
+        'senderRole': senderRole,
+        'text': text,
+        'createdAt': FieldValue.serverTimestamp(),
+        'attachmentUrl': attachmentUrl,
+        'readBy': <String>[senderId], // sender has seen their message - typed array
+        'deliveredTo': <String>[senderId], // sender device considered delivered
+      };
+
+      final docRef = await messagesRef.add(messageData);
+      if (kDebugMode) print('📤 Mensaje enviado: ${docRef.id}');
 
       // Update conversation metadata
       await _firestore.collection(_conversationsColl).doc(conversationId).update({
@@ -82,6 +84,7 @@ class ChatService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } on FirebaseException catch (e) {
+      if (kDebugMode) print('❌ Error enviando mensaje: ${e.message}');
       throw Exception('No tiene permiso para enviar mensajes o hubo un error: ${e.message}');
     }
   }
@@ -91,15 +94,75 @@ class ChatService {
     required String messageId,
     required String userId,
   }) async {
-    final msgRef = _firestore
-        .collection(_conversationsColl)
-        .doc(conversationId)
-        .collection('messages')
-        .doc(messageId);
+    try {
+      final msgRef = _firestore
+          .collection(_conversationsColl)
+          .doc(conversationId)
+          .collection('messages')
+          .doc(messageId);
 
-    await msgRef.update({
-      'readBy': FieldValue.arrayUnion([userId]),
-    });
+      // Primero verificar si el mensaje existe
+      final docSnapshot = await msgRef.get();
+      if (!docSnapshot.exists) {
+        if (kDebugMode) print('Mensaje no encontrado: $messageId');
+        return;
+      }
+
+      // Obtener el readBy actual
+      final currentReadBy = List<String>.from(docSnapshot.get('readBy') ?? []);
+      
+      // Si el usuario ya está en readBy, no hacer nada
+      if (currentReadBy.contains(userId)) {
+        if (kDebugMode) print('Mensaje ya estaba marcado como leído para $userId');
+        return;
+      }
+
+      // Agregar el usuario a readBy
+      currentReadBy.add(userId);
+      
+      await msgRef.update({
+        'readBy': currentReadBy,
+      });
+      
+      if (kDebugMode) print('✅ Mensaje $messageId marcado como leído por $userId');
+    } catch (e) {
+      if (kDebugMode) print('❌ Error al marcar mensaje como leído: $e');
+      rethrow;
+    }
+  }
+
+  // Mark message as delivered (device has received it)
+  Future<void> markMessageDelivered({
+    required String conversationId,
+    required String messageId,
+    required String userId,
+  }) async {
+    try {
+      final msgRef = _firestore
+          .collection(_conversationsColl)
+          .doc(conversationId)
+          .collection('messages')
+          .doc(messageId);
+
+      final docSnapshot = await msgRef.get();
+      if (!docSnapshot.exists) {
+        if (kDebugMode) print('Mensaje no encontrado (deliver): $messageId');
+        return;
+      }
+
+      final currentDelivered = List<String>.from(docSnapshot.get('deliveredTo') ?? []);
+      if (currentDelivered.contains(userId)) return;
+      currentDelivered.add(userId);
+
+      await msgRef.update({
+        'deliveredTo': currentDelivered,
+      });
+
+      if (kDebugMode) print('📥 Mensaje $messageId entregado a $userId');
+    } catch (e) {
+      if (kDebugMode) print('❌ Error al marcar mensaje como entregado: $e');
+      rethrow;
+    }
   }
 
   // Mark all messages in a conversation as read
@@ -108,18 +171,24 @@ class ChatService {
     required String userId,
   }) async {
     try {
+      if (kDebugMode) print('📌 Iniciando marcado de conversación $conversationId como leída para $userId');
+      
       final messageSnap = await _firestore
           .collection(_conversationsColl)
           .doc(conversationId)
           .collection('messages')
           .get();
 
+      int markedCount = 0;
+      
       for (var msgDoc in messageSnap.docs) {
         final readBy = List<String>.from(msgDoc.get('readBy') ?? []);
         if (!readBy.contains(userId)) {
+          readBy.add(userId);
           await msgDoc.reference.update({
-            'readBy': FieldValue.arrayUnion([userId]),
+            'readBy': readBy,
           });
+          markedCount++;
         }
       }
 
@@ -128,8 +197,11 @@ class ChatService {
           .collection(_conversationsColl)
           .doc(conversationId)
           .update({'unreadCount': 0});
+          
+      if (kDebugMode) print('✅ Conversación marcada como leída: $markedCount mensajes actualizados');
     } catch (e) {
-      if (kDebugMode) print('Error al marcar como leído: $e');
+      if (kDebugMode) print('❌ Error al marcar conversación como leída: $e');
+      rethrow;
     }
   }
 

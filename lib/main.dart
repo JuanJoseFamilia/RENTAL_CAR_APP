@@ -202,20 +202,27 @@ class _AuthWrapperState extends State<AuthWrapper> {
     try {
       final currentVersion = await _updateService.getCurrentVersion();
       final latestVersion = await _updateService.getLatestVersion();
+      
+      // DEBUG: Ver qué versiones se están comparando
+      print('🔍 DEBUG UPDATE: Current=$currentVersion, Latest=$latestVersion');
 
       if (!mounted) return;
 
       // Si no hay versión más reciente, continuar
       if (latestVersion == null ||
           !_updateService.hasUpdate(currentVersion, latestVersion)) {
+        print('❌ Sin actualización disponible');
         setState(() {
           _updateCheckDone = true;
         });
         return;
       }
 
-      // Obtener URL de descarga
+      print('✅ Actualización disponible detectada');
+
+      // Obtener URL de descarga y notas de cambios
       final downloadUrl = await _updateService.getDownloadUrl();
+      final releaseNotes = await _updateService.getReleaseNotes();
 
       if (!mounted) return;
 
@@ -227,6 +234,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           builder: (context) => UpdateDialog(
             updateService: _updateService,
             downloadUrl: downloadUrl,
+            releaseNotes: releaseNotes,
             isForced: true, // Cambiar a false si quieres permitir cerrar
           ),
         );
@@ -237,6 +245,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       });
     } catch (e) {
       // Log silencioso, no interrumpe la app
+      print('❌ Error en _checkForUpdates: $e');
       setState(() {
         _updateCheckDone = true;
       });

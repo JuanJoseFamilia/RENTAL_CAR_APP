@@ -9,6 +9,7 @@ class MessageModel {
   final DateTime createdAt;
   final String? attachmentUrl;
   final List<String> readBy;
+  final List<String> deliveredTo;
 
   MessageModel({
     required this.id,
@@ -18,7 +19,8 @@ class MessageModel {
     required this.createdAt,
     this.attachmentUrl,
     List<String>? readBy,
-  }) : readBy = readBy ?? [];
+      List<String>? deliveredTo,
+    }) : readBy = readBy ?? [], deliveredTo = deliveredTo ?? [];
 
   Map<String, dynamic> toMap() {
     return {
@@ -28,6 +30,7 @@ class MessageModel {
       'createdAt': Timestamp.fromDate(createdAt),
       'attachmentUrl': attachmentUrl,
       'readBy': readBy,
+      'deliveredTo': deliveredTo,
     };
   }
 
@@ -46,6 +49,7 @@ class MessageModel {
       createdAt: createdAt,
       attachmentUrl: map['attachmentUrl'] as String?,
       readBy: List<String>.from(map['readBy'] ?? []),
+      deliveredTo: List<String>.from(map['deliveredTo'] ?? []),
     );
   }
 }

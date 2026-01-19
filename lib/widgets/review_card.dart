@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import '../models/review_model.dart';
 import '../utils/constants.dart';
+import '../utils/responsive_helper.dart';
 
 class ReviewCard extends StatelessWidget {
   final ReviewModel review;
@@ -14,6 +15,8 @@ class ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSmallScreen = ResponsiveHelper.isSmallScreen(context);
+
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       elevation: 2,
@@ -21,65 +24,86 @@ class ReviewCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppBorderRadius.md),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: EdgeInsets.all(
+          ResponsiveHelper.responsivePadding(context, AppSpacing.md),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header con nombre y fecha
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    // Avatar
-                    CircleAvatar(
-                      backgroundColor: AppColors.primary,
-                      radius: 20,
-                      child: Text(
-                        review.nombreUsuario.isNotEmpty
-                            ? review.nombreUsuario[0].toUpperCase()
-                            : 'U',
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: AppFontSizes.md,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  // Avatar
+                  CircleAvatar(
+                    backgroundColor: AppColors.primary,
+                    radius: isSmallScreen ? 18 : 20,
+                    child: Text(
+                      review.nombreUsuario.isNotEmpty
+                          ? review.nombreUsuario[0].toUpperCase()
+                          : 'U',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: ResponsiveHelper.responsiveFontSize(
+                          context,
+                          AppFontSizes.md,
                         ),
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.sm),
-                    // Nombre
-                    Text(
-                      review.nombreUsuario,
-                      style: const TextStyle(
-                        fontSize: AppFontSizes.md,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-                // Fecha
-                Text(
-                  review.fechaFormateada,
-                  style: const TextStyle(
-                    fontSize: AppFontSizes.xs,
-                    color: AppColors.textSecondary,
                   ),
-                ),
-              ],
+                  const SizedBox(width: AppSpacing.sm),
+                  // Nombre
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          review.nombreUsuario,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.responsiveFontSize(
+                              context,
+                              AppFontSizes.md,
+                            ),
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        // Fecha
+                        Text(
+                          review.fechaFormateada,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.responsiveFontSize(
+                              context,
+                              AppFontSizes.xs,
+                            ),
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: AppSpacing.sm),
 
             // Calificación
-            RatingBarIndicator(
-              rating: review.calificacion.toDouble(),
-              itemBuilder: (context, index) => const Icon(
-                Icons.star,
-                color: AppColors.secondary,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: RatingBarIndicator(
+                rating: review.calificacion.toDouble(),
+                itemBuilder: (context, index) => const Icon(
+                  Icons.star,
+                  color: AppColors.secondary,
+                ),
+                itemCount: 5,
+                itemSize: isSmallScreen ? 18 : 20,
+                direction: Axis.horizontal,
               ),
-              itemCount: 5,
-              itemSize: 20,
-              direction: Axis.horizontal,
             ),
             const SizedBox(height: AppSpacing.sm),
 
@@ -87,11 +111,16 @@ class ReviewCard extends StatelessWidget {
             if (review.tieneComentario)
               Text(
                 review.comentario,
-                style: const TextStyle(
-                  fontSize: AppFontSizes.sm,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.responsiveFontSize(
+                    context,
+                    AppFontSizes.sm,
+                  ),
                   color: AppColors.textPrimary,
                   height: 1.5,
                 ),
+                maxLines: null,
+                overflow: TextOverflow.visible,
               ),
           ],
         ),

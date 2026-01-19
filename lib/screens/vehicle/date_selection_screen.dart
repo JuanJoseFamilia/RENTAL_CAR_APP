@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/vehicle_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/reservation_provider.dart';
@@ -69,19 +70,23 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(AppBorderRadius.sm),
                       child: widget.vehicle.portada != null && widget.vehicle.portada!.isNotEmpty
-                          ? Image.network(
-                              widget.vehicle.portada!,
+                          ? CachedNetworkImage(
+                              imageUrl: widget.vehicle.portada!,
                               width: 80,
                               height: 80,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  width: 80,
-                                  height: 80,
-                                  color: AppColors.grey,
-                                  child: const Icon(Icons.directions_car),
-                                );
-                              },
+                              placeholder: (context, url) => Container(
+                                width: 80,
+                                height: 80,
+                                color: AppColors.grey,
+                                child: const Icon(Icons.directions_car),
+                              ),
+                              errorWidget: (context, url, error) => Container(
+                                width: 80,
+                                height: 80,
+                                color: AppColors.grey,
+                                child: const Icon(Icons.directions_car),
+                              ),
                             )
                           : Container(
                               width: 80,

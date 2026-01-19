@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class VehicleGalleryScreen extends StatefulWidget {
   final List<String> images;
@@ -46,14 +47,13 @@ class _VehicleGalleryScreenState extends State<VehicleGalleryScreen> {
                 final url = widget.images[index];
                 return InteractiveViewer(
                   child: Center(
-                    child: Image.network(
-                      url,
+                    child: CachedNetworkImage(
+                      imageUrl: url,
                       fit: BoxFit.contain,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return const Center(child: CircularProgressIndicator());
-                      },
-                      errorBuilder: (context, error, stackTrace) => const Icon(
+                      placeholder: (context, url) => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                      errorWidget: (context, url, error) => const Icon(
                         Icons.broken_image,
                         color: Colors.white,
                         size: 120,

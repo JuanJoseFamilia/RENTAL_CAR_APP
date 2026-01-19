@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../utils/constants.dart';
+import '../utils/responsive_helper.dart';
 
 class CustomTextField extends StatefulWidget {
   final TextEditingController controller;
@@ -49,8 +50,11 @@ class _CustomTextFieldState extends State<CustomTextField> {
       children: [
         Text(
           widget.label,
-          style: const TextStyle(
-            fontSize: AppFontSizes.sm,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.responsiveFontSize(
+              context,
+              AppFontSizes.sm,
+            ),
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
@@ -65,15 +69,21 @@ class _CustomTextFieldState extends State<CustomTextField> {
           enabled: widget.enabled,
           inputFormatters: widget.inputFormatters,
           onChanged: widget.onChanged,
-          style: const TextStyle(
-            fontSize: AppFontSizes.md,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.responsiveFontSize(
+              context,
+              AppFontSizes.md,
+            ),
             color: AppColors.textPrimary,
           ),
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: const TextStyle(
+            hintStyle: TextStyle(
               color: AppColors.textSecondary,
-              fontSize: AppFontSizes.sm,
+              fontSize: ResponsiveHelper.responsiveFontSize(
+                context,
+                AppFontSizes.sm,
+              ),
             ),
             prefixIcon: widget.prefixIcon != null
                 ? Icon(widget.prefixIcon, color: AppColors.primary)

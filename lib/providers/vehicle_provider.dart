@@ -42,16 +42,6 @@ class VehicleProvider with ChangeNotifier {
     // ✅ NUEVO: Cancelar suscripción previa si existe
     _availableVehiclesSub?.cancel();
 
-    // ✅ NUEVO: Intentar usar caché primero
-    final cached = CacheService.getCachedVehicles();
-    if (cached != null && CacheService.isVehiclesCacheValid()) {
-      _vehicles = cached;
-      _isLoading = false;
-      _applyFilters();
-      notifyListeners();
-      print('[VehicleProvider] Usando caché de vehículos');
-    }
-
     // Luego, obtener datos frescos de Firebase
     _availableVehiclesSub = _vehicleService.getAvailableVehicles().listen(
       (vehiclesList) {

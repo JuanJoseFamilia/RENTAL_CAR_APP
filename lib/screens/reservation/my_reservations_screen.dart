@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/reservation_provider.dart';
 import '../../models/reservation_model.dart';
 import '../../utils/constants.dart';
+import '../../utils/responsive_helper.dart';
 import '../../utils/date_utils.dart';
 import 'reservation_detail_screen.dart';
 
@@ -35,17 +36,40 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppStrings.myReservations),
+        title: Text(
+          AppStrings.myReservations,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.responsiveFontSize(
+              context,
+              AppFontSizes.lg,
+            ),
+          ),
+        ),
         automaticallyImplyLeading: false,
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: AppColors.white,
           labelColor: AppColors.white,
           unselectedLabelColor: AppColors.white.withAlpha((0.7 * 255).round()),
-          tabs: const [
-            Tab(text: AppStrings.active),
-            Tab(text: AppStrings.completed),
-            Tab(text: AppStrings.cancelled),
+          tabs: [
+            Tab(
+              text: AppStrings.active,
+              icon: ResponsiveHelper.isSmallScreen(context)
+                  ? const Icon(Icons.schedule)
+                  : null,
+            ),
+            Tab(
+              text: AppStrings.completed,
+              icon: ResponsiveHelper.isSmallScreen(context)
+                  ? const Icon(Icons.check_circle)
+                  : null,
+            ),
+            Tab(
+              text: AppStrings.cancelled,
+              icon: ResponsiveHelper.isSmallScreen(context)
+                  ? const Icon(Icons.cancel)
+                  : null,
+            ),
           ],
         ),
       ),
@@ -79,23 +103,34 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
   ) {
     if (reservations.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.event_busy,
-              size: 80,
-              color: AppColors.textSecondary,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              emptyMessage,
-              style: const TextStyle(
-                fontSize: AppFontSizes.lg,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.event_busy,
+                size: ResponsiveHelper.isSmallScreen(context) ? 60 : 80,
                 color: AppColors.textSecondary,
               ),
-            ),
-          ],
+              SizedBox(
+                height: ResponsiveHelper.responsivePadding(
+                  context,
+                  AppSpacing.md,
+                ),
+              ),
+              Text(
+                emptyMessage,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.responsiveFontSize(
+                    context,
+                    AppFontSizes.lg,
+                  ),
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -108,7 +143,9 @@ class _MyReservationsScreenState extends State<MyReservationsScreen>
         }
       },
       child: ListView.builder(
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: EdgeInsets.all(
+          ResponsiveHelper.responsivePadding(context, AppSpacing.md),
+        ),
         itemCount: reservations.length,
         itemBuilder: (context, index) {
           final reservation = reservations[index];

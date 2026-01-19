@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/vehicle_model.dart';
 import '../utils/constants.dart';
+import '../utils/responsive_helper.dart';
 
 class VehicleCard extends StatelessWidget {
   final VehicleModel vehicle;
@@ -16,6 +17,13 @@ class VehicleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageHeight = ResponsiveHelper.responsiveImageHeight(
+      context,
+      smallHeight: 140,
+      mediumHeight: 180,
+      largeHeight: 220,
+    );
+
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(
@@ -25,6 +33,7 @@ class VehicleCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppBorderRadius.md),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Imagen del vehículo
@@ -37,18 +46,18 @@ class VehicleCard extends StatelessWidget {
                 children: [
                   CachedNetworkImage(
                     imageUrl: vehicle.portada ?? '',
-                    height: 180,
+                    height: imageHeight,
                     width: double.infinity,
                     fit: BoxFit.cover,
                     placeholder: (context, url) => Container(
-                      height: 180,
+                      height: imageHeight,
                       color: AppColors.grey,
                       child: const Center(
                         child: CircularProgressIndicator(),
                       ),
                     ),
                     errorWidget: (context, url, error) => Container(
-                      height: 180,
+                      height: imageHeight,
                       color: AppColors.grey,
                       child: const Icon(
                         Icons.directions_car,
@@ -86,19 +95,24 @@ class VehicleCard extends StatelessWidget {
 
             // Información del vehículo
             Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
+              padding: EdgeInsets.all(
+                ResponsiveHelper.responsivePadding(context, AppSpacing.md),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Nombre del vehículo
                   Text(
                     vehicle.nombreCompleto,
-                    style: const TextStyle(
-                      fontSize: AppFontSizes.lg,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.responsiveFontSize(
+                        context,
+                        AppFontSizes.lg,
+                      ),
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: AppSpacing.xs),
@@ -112,32 +126,37 @@ class VehicleCard extends StatelessWidget {
                         color: AppColors.secondary,
                       ),
                       const SizedBox(width: AppSpacing.xs),
-                      Text(
-                        vehicle.totalCalificaciones > 0
-                            ? '${vehicle.calificacionPromedio.toStringAsFixed(1)} (${vehicle.totalCalificaciones})'
-                            : 'Sin calificaciones',
-                        style: const TextStyle(
-                          fontSize: AppFontSizes.sm,
-                          color: AppColors.textSecondary,
+                      Expanded(
+                        child: Text(
+                          vehicle.totalCalificaciones > 0
+                              ? '${vehicle.calificacionPromedio.toStringAsFixed(1)} (${vehicle.totalCalificaciones})'
+                              : 'Sin calificaciones',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.responsiveFontSize(
+                              context,
+                              AppFontSizes.sm,
+                            ),
+                            color: AppColors.textSecondary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.sm),
 
-                  // Características
-                  Row(
-                    children: [
-                      _buildFeature(
-                        Icons.people,
-                        '${vehicle.capacidad} personas',
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      _buildFeature(
-                        Icons.settings,
-                        vehicle.transmision,
-                      ),
-                    ],
+                  // Características - Responsive layout
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildFeature(context, Icons.people, '${vehicle.capacidad}'),
+                        const SizedBox(width: AppSpacing.md),
+                        _buildFeature(context, Icons.settings, vehicle.transmision),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.md),
 
@@ -145,41 +164,55 @@ class VehicleCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '\$${vehicle.precioPorDia.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: AppFontSizes.xl,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '\$${vehicle.precioPorDia.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.responsiveFontSize(
+                                  context,
+                                  AppFontSizes.xl,
+                                ),
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
                             ),
-                          ),
-                          const Text(
-                            AppStrings.perDay,
-                            style: TextStyle(
-                              fontSize: AppFontSizes.xs,
-                              color: AppColors.textSecondary,
+                            Text(
+                              AppStrings.perDay,
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.responsiveFontSize(
+                                  context,
+                                  AppFontSizes.xs,
+                                ),
+                                color: AppColors.textSecondary,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(
+                        padding: EdgeInsets.symmetric(
                           horizontal: AppSpacing.md,
-                          vertical: AppSpacing.sm,
+                          vertical: ResponsiveHelper.responsivePadding(
+                            context,
+                            AppSpacing.sm,
+                          ),
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.primary,
                           borderRadius:
                               BorderRadius.circular(AppBorderRadius.sm),
                         ),
-                        child: const Text(
-                          'Ver detalles',
+                        child: Text(
+                          'Ver',
                           style: TextStyle(
                             color: AppColors.white,
-                            fontSize: AppFontSizes.sm,
+                            fontSize: ResponsiveHelper.responsiveFontSize(
+                              context,
+                              AppFontSizes.sm,
+                            ),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -195,23 +228,33 @@ class VehicleCard extends StatelessWidget {
     );
   }
 
-  Widget _buildFeature(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 16,
-          color: AppColors.textSecondary,
-        ),
-        const SizedBox(width: AppSpacing.xs),
-        Text(
-          text,
-          style: const TextStyle(
-            fontSize: AppFontSizes.xs,
+  Widget _buildFeature(BuildContext context, IconData icon, String text) {
+    return Flexible(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 16,
             color: AppColors.textSecondary,
           ),
-        ),
-      ],
+          const SizedBox(width: AppSpacing.xs),
+          Flexible(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: ResponsiveHelper.responsiveFontSize(
+                  context,
+                  AppFontSizes.xs,
+                ),
+                color: AppColors.textSecondary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

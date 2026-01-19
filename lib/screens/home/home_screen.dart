@@ -5,6 +5,7 @@ import '../../providers/vehicle_provider.dart';
 import '../../providers/reservation_provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../utils/constants.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/vehicle_card.dart';
 import '../../widgets/loanding_widget.dart';
 import '../vehicle/vehicle_detail_screen.dart';
@@ -91,7 +92,10 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         // Barra de búsqueda
         Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: EdgeInsets.all(ResponsiveHelper.responsivePadding(
+            context,
+            AppSpacing.md,
+          )),
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
@@ -127,10 +131,15 @@ class _HomeScreenState extends State<HomeScreen> {
         Consumer<VehicleProvider>(
           builder: (context, vehicleProvider, _) {
             return SizedBox(
-              height: 50,
+              height: ResponsiveHelper.isSmallScreen(context) ? 45 : 50,
               child: ListView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                padding: EdgeInsets.symmetric(
+                  horizontal: ResponsiveHelper.responsivePadding(
+                    context,
+                    AppSpacing.md,
+                  ),
+                ),
                 children: [
                   _buildFilterChip('Todos', null, vehicleProvider),
                   ...VehicleTypes.all.map(
@@ -155,40 +164,53 @@ class _HomeScreenState extends State<HomeScreen> {
               final vehicles = vehicleProvider.vehicles;
 
               if (vehicles.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.car_rental,
-                        size: 80,
-                        color: AppColors.textSecondary,
+                return SingleChildScrollView(
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.car_rental,
+                            size: ResponsiveHelper.isSmallScreen(context) ? 60 : 80,
+                            color: AppColors.textSecondary,
+                          ),
+                          SizedBox(height: ResponsiveHelper.responsivePadding(context, AppSpacing.md)),
+                          Text(
+                            AppStrings.noVehiclesFound,
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.responsiveFontSize(
+                                context,
+                                AppFontSizes.lg,
+                              ),
+                              color: AppColors.textSecondary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            'Intenta con otros filtros',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.responsiveFontSize(
+                                context,
+                                AppFontSizes.sm,
+                              ),
+                              color: AppColors.textSecondary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: ResponsiveHelper.responsivePadding(context, AppSpacing.lg)),
+                          ElevatedButton(
+                            onPressed: () {
+                              vehicleProvider.clearFilters();
+                              _searchController.clear();
+                            },
+                            child: const Text('Limpiar filtros'),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: AppSpacing.md),
-                      const Text(
-                        AppStrings.noVehiclesFound,
-                        style: TextStyle(
-                          fontSize: AppFontSizes.lg,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      const Text(
-                        'Intenta con otros filtros',
-                        style: TextStyle(
-                          fontSize: AppFontSizes.sm,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      ElevatedButton(
-                        onPressed: () {
-                          vehicleProvider.clearFilters();
-                          _searchController.clear();
-                        },
-                        child: const Text('Limpiar filtros'),
-                      ),
-                    ],
+                    ),
                   ),
                 );
               }
@@ -198,7 +220,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   vehicleProvider.reloadVehicles();
                 },
                 child: ListView.builder(
-                  padding: const EdgeInsets.all(AppSpacing.md),
+                  padding: EdgeInsets.all(
+                    ResponsiveHelper.responsivePadding(
+                      context,
+                      AppSpacing.md,
+                    ),
+                  ),
                   itemCount: vehicles.length,
                   itemBuilder: (context, index) {
                     final vehicle = vehicles[index];
@@ -235,17 +262,23 @@ class _HomeScreenState extends State<HomeScreen> {
     return Padding(
       padding: const EdgeInsets.only(right: AppSpacing.sm),
       child: FilterChip(
-        label: Text(label),
+        label: Text(
+          label,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.responsiveFontSize(
+              context,
+              AppFontSizes.sm,
+            ),
+            color: isSelected ? AppColors.white : AppColors.textPrimary,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
         selected: isSelected,
         onSelected: (selected) {
           vehicleProvider.filterByType(selected ? filterValue : null);
         },
         backgroundColor: AppColors.white,
         selectedColor: AppColors.primary,
-        labelStyle: TextStyle(
-          color: isSelected ? AppColors.white : AppColors.textPrimary,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        ),
         checkmarkColor: AppColors.white,
       ),
     );
@@ -352,9 +385,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final chatProvider = context.read<ChatProvider>();
 
     return StreamBuilder<int>(
-      stream: isAdmin 
-          ? chatProvider.streamUnreadMessageCountForAdmin()
-          : (userId != null ? chatProvider.streamUnreadMessageCount(userId) : Stream.value(0)),
+      stream: (userId != null) ? chatProvider.streamUnreadMessageCount(userId) : Stream.value(0),
+      // Use the current authenticated UID for both users and admins so badge clears correctly
+      // If userId is null, show 0
+      // This replaces the previous admin-specific stream which used a fixed 'admin' marker
+      // and could fail when admins use their real UID.
       builder: (context, snapshot) {
         final unreadCount = snapshot.data ?? 0;
 

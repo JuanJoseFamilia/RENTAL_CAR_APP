@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/constants.dart';
+import '../../utils/responsive_helper.dart';
 import '../../utils/validators.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../widgets/custom_buttom.dart';
@@ -144,66 +145,101 @@ class _ProfileScreenState extends State<ProfileScreen> {
           }
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+            padding: EdgeInsets.all(
+              ResponsiveHelper.responsivePadding(context, AppSpacing.lg),
+            ),
             child: Column(
               children: [
                 // Avatar
                 CircleAvatar(
-                  radius: 60,
+                  radius: ResponsiveHelper.isSmallScreen(context) ? 50 : 60,
                   backgroundColor: AppColors.primary,
                   child: Text(
                     user.nombre.isNotEmpty ? user.nombre[0].toUpperCase() : 'U',
-                    style: const TextStyle(
-                      fontSize: 48,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.responsiveFontSize(
+                        context,
+                        48,
+                      ),
                       fontWeight: FontWeight.bold,
                       color: AppColors.white,
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.lg),
+                SizedBox(
+                  height: ResponsiveHelper.responsivePadding(context, AppSpacing.lg),
+                ),
 
                 // Nombre y email
                 if (!_isEditing) ...[
                   Text(
                     user.nombre,
-                    style: const TextStyle(
-                      fontSize: AppFontSizes.xl,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.responsiveFontSize(
+                        context,
+                        AppFontSizes.xl,
+                      ),
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
                     ),
+                    textAlign: TextAlign.center,
+                    maxLines: null,
+                    overflow: TextOverflow.visible,
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     user.email,
-                    style: const TextStyle(
-                      fontSize: AppFontSizes.md,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.responsiveFontSize(
+                        context,
+                        AppFontSizes.md,
+                      ),
                       color: AppColors.textSecondary,
                     ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text(
                     user.telefono,
-                    style: const TextStyle(
-                      fontSize: AppFontSizes.md,
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.responsiveFontSize(
+                        context,
+                        AppFontSizes.md,
+                      ),
                       color: AppColors.textSecondary,
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: AppSpacing.xl),
+                  SizedBox(
+                    height: ResponsiveHelper.responsivePadding(
+                      context,
+                      AppSpacing.xl,
+                    ),
+                  ),
 
                   // Información adicional
                   Card(
                     elevation: 2,
                     child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
+                      padding: EdgeInsets.all(
+                        ResponsiveHelper.responsivePadding(
+                          context,
+                          AppSpacing.md,
+                        ),
+                      ),
                       child: Column(
                         children: [
                           _buildInfoTile(
+                            context,
                             Icons.badge,
                             'Rol',
                             user.rol.toUpperCase(),
                           ),
                           const Divider(),
                           _buildInfoTile(
+                            context,
                             Icons.calendar_today,
                             'Miembro desde',
                             _formatDate(user.fechaRegistro),
@@ -288,23 +324,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildInfoTile(IconData icon, String label, String value) {
+  Widget _buildInfoTile(
+      BuildContext context, IconData icon, String label, String value) {
     return ListTile(
       leading: Icon(icon, color: AppColors.primary),
       title: Text(
         label,
-        style: const TextStyle(
-          fontSize: AppFontSizes.sm,
+        style: TextStyle(
+          fontSize: ResponsiveHelper.responsiveFontSize(
+            context,
+            AppFontSizes.sm,
+          ),
           color: AppColors.textSecondary,
         ),
       ),
       subtitle: Text(
         value,
-        style: const TextStyle(
-          fontSize: AppFontSizes.md,
+        style: TextStyle(
+          fontSize: ResponsiveHelper.responsiveFontSize(
+            context,
+            AppFontSizes.md,
+          ),
           fontWeight: FontWeight.bold,
           color: AppColors.textPrimary,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

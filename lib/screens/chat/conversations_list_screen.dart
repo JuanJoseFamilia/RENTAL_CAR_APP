@@ -8,6 +8,7 @@ import '../../models/conversation_model.dart';
 import '../../services/reservation_service.dart';
 import '../../models/reservation_model.dart';
 import '../../utils/constants.dart';
+import '../../utils/responsive_helper.dart';
 
 class ConversationsListScreen extends StatefulWidget {
   const ConversationsListScreen({super.key});
@@ -48,15 +49,31 @@ class _ConversationsListScreenState extends State<ConversationsListScreen>
       appBar: AppBar(
         title: Text(
           isAdmin ? 'Conversaciones (admin)' : 'Mensajes',
-          style: const TextStyle(color: AppColors.white),
+          style: TextStyle(
+            color: AppColors.white,
+            fontSize: ResponsiveHelper.responsiveFontSize(
+              context,
+              AppFontSizes.lg,
+            ),
+          ),
         ),
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.white,
           unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(text: 'Chat Activos'),
-            Tab(text: 'Histórico'),
+          tabs: [
+            Tab(
+              text: 'Chat Activos',
+              icon: ResponsiveHelper.isSmallScreen(context)
+                  ? const Icon(Icons.chat)
+                  : null,
+            ),
+            Tab(
+              text: 'Histórico',
+              icon: ResponsiveHelper.isSmallScreen(context)
+                  ? const Icon(Icons.history)
+                  : null,
+            ),
           ],
         ),
       ),
@@ -140,29 +157,38 @@ class _ConversationsListScreenState extends State<ConversationsListScreen>
       children: [
         // Filtro
         Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
+          padding: EdgeInsets.all(
+            ResponsiveHelper.responsivePadding(context, AppSpacing.md),
+          ),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                Text(
                   'Filtrar por:',
-                  style: Theme.of(context).textTheme.labelMedium,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        fontSize: ResponsiveHelper.responsiveFontSize(
+                          context,
+                          AppFontSizes.sm,
+                        ),
+                      ),
                 ),
-              ),
-              DropdownButton<String>(
-                value: _historicalFilter,
-                items: const [
-                  DropdownMenuItem(value: 'todos', child: Text('Todos')),
-                  DropdownMenuItem(value: 'completados', child: Text('Completados')),
-                  DropdownMenuItem(value: 'cancelados', child: Text('Cancelados')),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _historicalFilter = value ?? 'todos';
-                  });
-                },
-              ),
-            ],
+                const SizedBox(width: AppSpacing.sm),
+                DropdownButton<String>(
+                  value: _historicalFilter,
+                  items: const [
+                    DropdownMenuItem(value: 'todos', child: Text('Todos')),
+                    DropdownMenuItem(value: 'completados', child: Text('Completados')),
+                    DropdownMenuItem(value: 'cancelados', child: Text('Cancelados')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _historicalFilter = value ?? 'todos';
+                    });
+                  },
+                ),
+              ],
+            ),
           ),
         ),
         Expanded(
@@ -244,7 +270,9 @@ class _ConversationsListScreenState extends State<ConversationsListScreen>
   ) {
     final userLabel = isAdmin ? (res?.userName ?? conv.userId) : res?.vehicleNombre;
     final vehicleLabel = !isAdmin
-        ? (res != null && res.vehicleMarca != null ? '${res.vehicleMarca} ${res.vehicleModelo}' : conv.vehicleId)
+        ? (res != null && res.vehicleMarca != null
+            ? '${res.vehicleMarca} ${res.vehicleModelo}'
+            : conv.vehicleId)
         : null;
     final lastMsg = conv.lastMessage ?? 'Sin mensajes';
     final updated = DateFormat.yMd().add_Hm().format(conv.updatedAt);
@@ -260,7 +288,9 @@ class _ConversationsListScreenState extends State<ConversationsListScreen>
     }
 
     return StreamBuilder<int>(
-      stream: context.read<ChatProvider>().streamUnreadCountForConversation(conv.id, userId),
+      stream: context
+          .read<ChatProvider>()
+          .streamUnreadCountForConversation(conv.id, userId),
       builder: (context, unreadSnap) {
         final unreadCount = unreadSnap.data ?? 0;
         final hasUnread = unreadCount > 0;
@@ -268,7 +298,7 @@ class _ConversationsListScreenState extends State<ConversationsListScreen>
         return Container(
           decoration: BoxDecoration(
             border: Border(left: BorderSide(color: borderColor, width: 4)),
-            color: hasUnread ? Colors.red.withAlpha(13) : null, // Very subtle red background
+            color: hasUnread ? Colors.red.withAlpha(13) : null,
           ),
           child: ListTile(
             title: Row(
@@ -277,9 +307,15 @@ class _ConversationsListScreenState extends State<ConversationsListScreen>
                   child: Text(
                     userLabel ?? 'Desconocido',
                     style: TextStyle(
+                      fontSize: ResponsiveHelper.responsiveFontSize(
+                        context,
+                        AppFontSizes.md,
+                      ),
                       fontWeight: hasUnread ? FontWeight.bold : FontWeight.normal,
                       color: hasUnread ? Colors.red : Colors.black,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (hasUnread)
@@ -291,9 +327,12 @@ class _ConversationsListScreenState extends State<ConversationsListScreen>
                     ),
                     child: Text(
                       unreadCount > 99 ? '99+' : '$unreadCount',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
-                        fontSize: 12,
+                        fontSize: ResponsiveHelper.responsiveFontSize(
+                          context,
+                          12,
+                        ),
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -304,12 +343,26 @@ class _ConversationsListScreenState extends State<ConversationsListScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
-                if (vehicleLabel != null) Text('Vehículo: $vehicleLabel'),
+                if (vehicleLabel != null)
+                  Text(
+                    'Vehículo: $vehicleLabel',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.responsiveFontSize(
+                        context,
+                        AppFontSizes.sm,
+                      ),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 if (res != null)
                   Text(
                     'Estado: ${res.estadoTexto}',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: ResponsiveHelper.responsiveFontSize(
+                        context,
+                        12,
+                      ),
                       color: res.estado == 'completada'
                           ? AppColors.success
                           : res.estado == 'cancelada'

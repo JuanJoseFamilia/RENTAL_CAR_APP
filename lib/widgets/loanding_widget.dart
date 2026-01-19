@@ -1,6 +1,7 @@
 // lib/widgets/loanding_widget.dart
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
+import '../utils/responsive_helper.dart';
 
 class LoadingWidget extends StatelessWidget {
   final String? message;
@@ -14,13 +15,17 @@ class LoadingWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final responsiveSize = ResponsiveHelper.isSmallScreen(context)
+        ? size * 0.8
+        : size;
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SizedBox(
-            width: size,
-            height: size,
+            width: responsiveSize,
+            height: responsiveSize,
             child: const CircularProgressIndicator(
               strokeWidth: 3,
               valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
@@ -28,13 +33,26 @@ class LoadingWidget extends StatelessWidget {
           ),
           if (message != null) ...[
             const SizedBox(height: AppSpacing.md),
-            Text(
-              message!,
-              style: const TextStyle(
-                fontSize: AppFontSizes.md,
-                color: AppColors.textSecondary,
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: ResponsiveHelper.responsivePadding(
+                  context,
+                  AppSpacing.md,
+                ),
               ),
-              textAlign: TextAlign.center,
+              child: Text(
+                message!,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.responsiveFontSize(
+                    context,
+                    AppFontSizes.md,
+                  ),
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: null,
+                overflow: TextOverflow.visible,
+              ),
             ),
           ],
         ],

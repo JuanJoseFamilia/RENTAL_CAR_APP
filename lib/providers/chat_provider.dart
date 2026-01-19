@@ -1,5 +1,5 @@
 // lib/providers/chat_provider.dart
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../services/chat_service.dart';
 import '../models/message_model.dart';
 import '../models/conversation_model.dart';
@@ -54,15 +54,33 @@ class ChatProvider with ChangeNotifier {
     );
   }
 
+  Future<void> markMessageDelivered({
+    required String conversationId,
+    required String messageId,
+    required String userId,
+  }) async {
+    await _chatService.markMessageDelivered(
+      conversationId: conversationId,
+      messageId: messageId,
+      userId: userId,
+    );
+  }
+
   // Mark entire conversation as read
   Future<void> markConversationAsRead({
     required String conversationId,
     required String userId,
   }) async {
-    await _chatService.markConversationAsRead(
-      conversationId: conversationId,
-      userId: userId,
-    );
+    try {
+      await _chatService.markConversationAsRead(
+        conversationId: conversationId,
+        userId: userId,
+      );
+      notifyListeners();
+    } catch (e) {
+      if (kDebugMode) print('Error en provider markConversationAsRead: $e');
+      rethrow;
+    }
   }
 
   // Stream de conversaciones del usuario

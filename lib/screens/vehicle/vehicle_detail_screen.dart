@@ -5,6 +5,7 @@ import '../../providers/vehicle_provider.dart';
 import '../../providers/review_provider.dart';
 import '../../models/vehicle_model.dart';
 import '../../utils/constants.dart';
+import '../../utils/responsive_helper.dart';
 import '../../widgets/loanding_widget.dart';
 import '../../widgets/review_card.dart';
 import '../../widgets/custom_buttom.dart';
@@ -65,7 +66,7 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
         slivers: [
           // App Bar con imagen
           SliverAppBar(
-            expandedHeight: 300,
+            expandedHeight: ResponsiveHelper.responsiveSliverAppBarHeight(context),
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               background: GestureDetector(
@@ -109,15 +110,20 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
               children: [
                 // Información principal
                 Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  padding: EdgeInsets.all(
+                    ResponsiveHelper.responsivePadding(context, AppSpacing.lg),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Tipo
                       Container(
-                        padding: const EdgeInsets.symmetric(
+                        padding: EdgeInsets.symmetric(
                           horizontal: AppSpacing.md,
-                          vertical: AppSpacing.xs,
+                          vertical: ResponsiveHelper.responsivePadding(
+                            context,
+                            AppSpacing.xs,
+                          ),
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.primary,
@@ -126,9 +132,12 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                         ),
                         child: Text(
                           vehicle.tipo,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.white,
-                            fontSize: AppFontSizes.sm,
+                            fontSize: ResponsiveHelper.responsiveFontSize(
+                              context,
+                              AppFontSizes.sm,
+                            ),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -138,115 +147,152 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                       // Nombre
                       Text(
                         vehicle.nombreCompleto,
-                        style: const TextStyle(
-                          fontSize: AppFontSizes.xxl,
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.responsiveFontSize(
+                            context,
+                            AppFontSizes.xxl,
+                          ),
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
                         ),
+                        maxLines: null,
+                        overflow: TextOverflow.visible,
                       ),
                       const SizedBox(height: AppSpacing.sm),
 
                       // Calificación
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.star,
-                            size: 24,
-                            color: AppColors.secondary,
-                          ),
-                          const SizedBox(width: AppSpacing.xs),
-                          Text(
-                            vehicle.calificacionTexto,
-                            style: const TextStyle(
-                              fontSize: AppFontSizes.md,
-                              color: AppColors.textSecondary,
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.star,
+                              size: 24,
+                              color: AppColors.secondary,
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(
+                              vehicle.calificacionTexto,
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.responsiveFontSize(
+                                  context,
+                                  AppFontSizes.md,
+                                ),
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.lg),
 
                       // Precio
-                      Row(
-                        children: [
-                          Text(
-                            '\$${vehicle.precioPorDia.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            Text(
+                              '\$${vehicle.precioPorDia.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.responsiveFontSize(
+                                  context,
+                                  32,
+                                ),
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          const Text(
-                            AppStrings.perDay,
-                            style: TextStyle(
-                              fontSize: AppFontSizes.md,
-                              color: AppColors.textSecondary,
+                            const SizedBox(width: AppSpacing.sm),
+                            Text(
+                              AppStrings.perDay,
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.responsiveFontSize(
+                                  context,
+                                  AppFontSizes.md,
+                                ),
+                                color: AppColors.textSecondary,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.xl),
 
                       // Características
-                      const Text(
+                      Text(
                         'Características',
                         style: TextStyle(
-                          fontSize: AppFontSizes.lg,
+                          fontSize: ResponsiveHelper.responsiveFontSize(
+                            context,
+                            AppFontSizes.lg,
+                          ),
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.md),
-                      Row(
+                      const SizedBox(height: AppSpacing.lg),
+                      GridView.count(
+                        crossAxisCount: ResponsiveHelper.isSmallScreen(context)
+                            ? 2
+                            : ResponsiveHelper.isMediumScreen(context)
+                                ? 2
+                                : 4,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: ResponsiveHelper.responsivePadding(
+                          context,
+                          AppSpacing.md,
+                        ),
+                        crossAxisSpacing: ResponsiveHelper.responsivePadding(
+                          context,
+                          AppSpacing.md,
+                        ),
+                        childAspectRatio: ResponsiveHelper.isSmallScreen(context)
+                            ? 1.35
+                            : ResponsiveHelper.isMediumScreen(context)
+                                ? 1.4
+                                : 1.3,
                         children: [
-                          Expanded(
-                            child: _buildFeatureCard(
-                              Icons.people,
-                              AppStrings.capacity,
-                              '${vehicle.capacidad} personas',
-                            ),
+                          _buildFeatureCard(
+                            context,
+                            Icons.people,
+                            AppStrings.capacity,
+                            '${vehicle.capacidad} personas',
                           ),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: _buildFeatureCard(
-                              Icons.settings,
-                              AppStrings.transmission,
-                              vehicle.transmision,
-                            ),
+                          _buildFeatureCard(
+                            context,
+                            Icons.settings,
+                            AppStrings.transmission,
+                            vehicle.transmision,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildFeatureCard(
-                              Icons.calendar_today,
-                              AppStrings.year,
-                              vehicle.anio.toString(),
-                            ),
+                          _buildFeatureCard(
+                            context,
+                            Icons.calendar_today,
+                            AppStrings.year,
+                            vehicle.anio.toString(),
                           ),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: _buildFeatureCard(
-                              Icons.check_circle,
-                              'Estado',
-                              vehicle.disponible
-                                  ? 'Disponible'
-                                  : 'No disponible',
-                            ),
+                          _buildFeatureCard(
+                            context,
+                            Icons.check_circle,
+                            'Estado',
+                            vehicle.disponible
+                                ? 'Disponible'
+                                : 'No disponible',
                           ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.xl),
 
                       // Descripción
-                      const Text(
+                      Text(
                         'Descripción',
                         style: TextStyle(
-                          fontSize: AppFontSizes.lg,
+                          fontSize: ResponsiveHelper.responsiveFontSize(
+                            context,
+                            AppFontSizes.lg,
+                          ),
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
                         ),
@@ -361,33 +407,93 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
     );
   }
 
-  Widget _buildFeatureCard(IconData icon, String label, String value) {
+  Widget _buildFeatureCard(
+      BuildContext context, IconData icon, String label, String value) {
+    final isSmall = ResponsiveHelper.isSmallScreen(context);
+    final isMedium = ResponsiveHelper.isMediumScreen(context);
+    
     return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          children: [
-            Icon(icon, size: 32, color: AppColors.primary),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: AppFontSizes.xs,
-                color: AppColors.textSecondary,
-              ),
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.white,
+              AppColors.white.withOpacity(0.98),
+            ],
+          ),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(
+            ResponsiveHelper.responsivePadding(
+              context,
+              isSmall ? AppSpacing.md : AppSpacing.lg,
             ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: AppFontSizes.sm,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(
+                  isSmall ? AppSpacing.sm : AppSpacing.md,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                ),
+                child: Icon(
+                  icon,
+                  size: isSmall ? 28 : isMedium ? 32 : 36,
+                  color: AppColors.primary,
+                ),
               ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+              SizedBox(
+                height: isSmall ? AppSpacing.xs : AppSpacing.sm,
+              ),
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.responsiveFontSize(
+                      context,
+                      isSmall ? AppFontSizes.xs : AppFontSizes.sm,
+                    ),
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              SizedBox(
+                height: isSmall ? AppSpacing.xs : AppSpacing.sm,
+              ),
+              Flexible(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.responsiveFontSize(
+                      context,
+                      isSmall ? AppFontSizes.sm : AppFontSizes.md,
+                    ),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

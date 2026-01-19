@@ -64,7 +64,7 @@ class CacheService {
     if (timestamp == null) return false;
 
     final cacheAge = DateTime.now().millisecondsSinceEpoch - (timestamp as int);
-    final oneHourMs = 60 * 60 * 1000;
+    const oneHourMs = 60 * 60 * 1000;
     return cacheAge < oneHourMs;
   }
 
@@ -124,7 +124,7 @@ class CacheService {
     if (timestamp == null) return false;
 
     final cacheAge = DateTime.now().millisecondsSinceEpoch - (timestamp as int);
-    final thirtyMinMs = 30 * 60 * 1000;
+    const thirtyMinMs = 30 * 60 * 1000;
     return cacheAge < thirtyMinMs;
   }
 

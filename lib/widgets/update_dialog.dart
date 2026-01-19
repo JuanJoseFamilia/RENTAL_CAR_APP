@@ -4,11 +4,13 @@ import '../services/update_service.dart';
 class UpdateDialog extends StatefulWidget {
   final UpdateService updateService;
   final String downloadUrl;
+  final String? releaseNotes;
   final bool isForced; // true = no se puede cerrar
 
   const UpdateDialog({
     required this.updateService,
     required this.downloadUrl,
+    this.releaseNotes,
     this.isForced = true,
     super.key,
   });
@@ -47,7 +49,49 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 _statusText,
                 style: const TextStyle(fontSize: 14),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+              // Mostrar notas de cambios si están disponibles
+              if (widget.releaseNotes != null && !_isDownloading)
+                Container(
+                  constraints: const BoxConstraints(
+                    maxHeight: 200, // Altura máxima del contenedor
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Novedades:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.blue.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            widget.releaseNotes!,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.blue.shade900,
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              if (widget.releaseNotes != null && !_isDownloading)
+                const SizedBox(height: 16),
               if (_isDownloading)
                 Column(
                   mainAxisSize: MainAxisSize.min,
@@ -79,12 +123,27 @@ class _UpdateDialogState extends State<UpdateDialog> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.red.shade200),
                   ),
-                  child: Text(
-                    _errorMessage!,
-                    style: TextStyle(
-                      color: Colors.red.shade700,
-                      fontSize: 12,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Algo salió mal',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _errorMessage!,
+                        style: TextStyle(
+                          color: Colors.red.shade700,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
             ],
@@ -163,12 +222,55 @@ class _UpdateDialogState extends State<UpdateDialog> {
       }
     } catch (e) {
       if (mounted) {
+        String userFriendlyMessage = _getErrorMessage(e);
         setState(() {
           _isDownloading = false;
-          _errorMessage = 'Error: ${e.toString()}';
-          _statusText = 'Hubo un problema al descargar';
+          _errorMessage = userFriendlyMessage;
+          _statusText = 'No se pudo completar la actualización';
         });
       }
     }
+  }
+
+  /// Convierte errores técnicos en mensajes amigables para el usuario
+  String _getErrorMessage(dynamic error) {
+    final errorString = error.toString();
+
+    // Errores de conexión
+    if (errorString.contains('Network') ||
+        errorString.contains('SocketException') ||
+        errorString.contains('TimeoutException') ||
+        errorString.contains('Connection') ||
+        errorString.contains('host unreachable')) {
+      return 'No hay conexión a internet.\n\nVerifica tu conexión WiFi o datos móviles e intenta nuevamente.';
+    }
+
+    // Errores de espacio en disco
+    if (errorString.contains('No space') || errorString.contains('ENOSPC')) {
+      return 'No hay suficiente espacio en el dispositivo.\n\nLibera espacio e intenta de nuevo.';
+    }
+
+    // Errores de permisos
+    if (errorString.contains('Permission') || errorString.contains('PermissionHandler')) {
+      return 'Se necesitan permisos para instalar la actualización.\n\nVerifica los permisos en la configuración del dispositivo.';
+    }
+
+    // Errores de descarga
+    if (errorString.contains('Download') || errorString.contains('404')) {
+      return 'No se pudo descargar la actualización.\n\nIntenta más tarde o contacta con soporte.';
+    }
+
+    // Errores de instalación
+    if (errorString.contains('Install') || errorString.contains('APK')) {
+      return 'Hubo un problema al instalar.\n\nAsegúrate de que el dispositivo permite instalar desde fuentes desconocidas.';
+    }
+
+    // Errores de timeout
+    if (errorString.contains('timeout')) {
+      return 'La descarga tardó demasiado.\n\nIntenta nuevamente con mejor conexión.';
+    }
+
+    // Error genérico pero amigable
+    return 'Algo salió mal durante la actualización.\n\nIntenta nuevamente en unos momentos.';
   }
 }

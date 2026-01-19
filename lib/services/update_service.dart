@@ -70,6 +70,29 @@ class UpdateService {
     return null;
   }
 
+  /// Obtiene las notas de cambios (release notes) más recientes de GitHub
+  Future<String?> getReleaseNotes() async {
+    try {
+      final response = await dio.get(
+        'https://api.github.com/repos/$githubRepo/releases/latest',
+        options: Options(
+          headers: {
+            if (githubToken.isNotEmpty) 'Authorization': 'token $githubToken',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final body = response.data['body'] as String?;
+        developer.log('✓ Notas de cambios obtenidas de GitHub');
+        return body?.isNotEmpty == true ? body : null;
+      }
+    } catch (e) {
+      developer.log('Error obteniendo notas de cambios: $e');
+    }
+    return null;
+  }
+
   /// Compara versiones (retorna true si hay actualización disponible)
   bool hasUpdate(String currentVersion, String latestVersion) {
     try {
